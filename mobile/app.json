@@ -1,0 +1,41 @@
+{
+  "expo": {
+    "name": "Budget Worker",
+    "slug": "budget-worker",
+    "version": "1.0.1",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "in.budgetworker.app",
+      "buildNumber": "2"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/icon.png",
+        "backgroundColor": "#204be6"
+      },
+      "predictiveBackGestureEnabled": false,
+      "package": "in.budgetworker.app",
+      "versionCode": 2
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "single"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Allow Budget Worker to show worker profiles near your location."
+        }
+      ],
+      "expo-document-picker",
+      "expo-build-properties"
+    ],
+    "scheme": "budgetworker"
+  }
+}

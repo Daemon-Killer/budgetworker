@@ -1,0 +1,6 @@
+import {requireAdmin} from '@/lib/auth';import {jsonOk,jsonError} from '@/lib/api';import {withCors} from '@/lib/cors';
+let nextLookup=0;
+export async function GET(req:Request){return withCors(req,async()=>{try{await requireAdmin(req);const q=new URL(req.url).searchParams.get('q')?.trim();if(!q||q.length<3||q.length>150)return jsonOk({error:'Choose an area and city first'},{status:400});if(Date.now()<nextLookup)return jsonOk({error:'Please wait a moment before another lookup'},{status:429});nextLookup=Date.now()+1500;
+const url=new URL(process.env.GEOCODER_URL??'https://photon.komoot.io/api/');url.searchParams.set('q',q+', India');url.searchParams.set('limit','3');const r=await fetch(url,{next:{revalidate:86400},signal:AbortSignal.timeout(8000)});if(!r.ok)throw Error('Location lookup is temporarily unavailable');
+const data=await r.json() as {features:{geometry:{coordinates:[number,number]};properties:Record<string,string>}[]};return jsonOk({places:data.features.map(f=>({label:[f.properties.name,f.properties.city,f.properties.state,f.properties.country].filter(Boolean).join(', '),longitude:f.geometry.coordinates[0],latitude:f.geometry.coordinates[1]}))});}catch(e){return jsonError(e);}});}
+export async function OPTIONS(req:Request){return withCors(req,async()=>new Response(null,{status:204}));}

@@ -1,0 +1,251 @@
+// Budget Worker (budgetworker.in) — PostgreSQL for local + production (Neon / Vercel)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  phone     String   @unique
+  name      String?
+  // CLIENT | ADMIN
+  role      String   @default("CLIENT")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  sessionVersion Int @default(0)
+  workerProfile Worker? @relation("WorkerAccount")
+  jobs Job[] @relation("JobOwner")
+  reviews Review[] @relation("ReviewAuthor")
+  auditEntries AuditEntry[]
+
+  orders   Order[]
+  ledger   CreditLedger[]
+  unlocks  Unlock[]
+  otpCodes OtpCode[]
+  checkoutTickets CheckoutTicket[]
+}
+
+model CheckoutTicket {
+ id String @id
+ userId String
+ user User @relation(fields:[userId],references:[id])
+ expiresAt DateTime
+ consumed Boolean @default(false)
+ @@index([expiresAt])
+}
+
+model OtpCode {
+  id        String   @id @default(cuid())
+  phone     String
+  code      String
+  expiresAt DateTime
+  consumed  Boolean  @default(false)
+  attempts Int @default(0)
+  createdAt DateTime @default(now())
+
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id])
+
+  @@index([phone])
+}
+
+model Pack {
+  id        String   @id @default(cuid())
+  name      String
+  priceInr  Int
+  credits   Int
+  active    Boolean  @default(true)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+
+  orders Order[]
+}
+
+model Order {
+  id          String   @id @default(cuid())
+  userId      String
+  packId      String
+  amountInr   Int
+  credits     Int
+  // PENDING | PAID | FAILED
+  status      String   @default("PENDING")
+  provider    String   @default("mock")
+  providerRef String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user   User           @relation(fields: [userId], references: [id])
+  pack   Pack           @relation(fields: [packId], references: [id])
+  ledger CreditLedger[]
+
+  @@index([userId])
+}
+
+model CreditLedger {
+  id        String   @id @default(cuid())
+  userId    String
+  delta     Int
+  reason    String
+  orderId   String?
+  unlockId  String?
+  createdAt DateTime @default(now())
+
+  user   User    @relation(fields: [userId], references: [id])
+  order  Order?  @relation(fields: [orderId], references: [id])
+  unlock Unlock? @relation(fields: [unlockId], references: [id])
+
+  @@index([userId])
+}
+
+model Worker {
+  id     String @id @default(cuid())
+  name   String
+  phone  String
+  // COOK | HOUSEKEEPING | BABYCARE | JAPA | ELDERCARE | CHEF
+  category String
+  // PART_TIME | FULL_TIME
+  employmentType String @default("FULL_TIME")
+  city           String @default("Pune")
+  area           String?
+  age            Int?
+  skill          String?
+  about          String?
+  salaryExpectation String?
+  expectedPayInr    Int?
+  payPeriod        String @default("MONTH")
+  hoursPerDay      Float?
+  vegNonVeg         String?
+  religion          String?
+  experienceYears   Int?
+  livingLocation    String?
+  workingLocation   String?
+  whenCanJoin       String?
+  photoUrl          String?
+  policeVerified    Boolean @default(false)
+  aadhaarVerified   Boolean @default(false)
+  // AVAILABLE | PLACED | INACTIVE
+  status            String  @default("AVAILABLE")
+  // Resume (PDF/DOC) — public list is free; resume unlocks with 1 credit
+  resumeFileName    String?
+  resumeMimeType    String?
+  resumeSize        Int?
+  resumeData        Bytes?
+  // Internal ops (calling / marketing) — phone never shown on public site
+  internalNotes     String?
+  lastCalledAt      DateTime?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  userId String? @unique
+  user User? @relation("WorkerAccount", fields: [userId], references: [id])
+  latitude Float?
+  longitude Float?
+  serviceRadiusKm Int @default(10)
+  onboardingStatus String @default("APPROVED")
+  applications JobApplication[]
+  assignedJobs Job[] @relation("AssignedWorker")
+  reviews Review[]
+
+  unlocks Unlock[]
+
+  @@index([status, city, category])
+  @@index([status, onboardingStatus, expectedPayInr])
+}
+
+model Unlock {
+  id        String   @id @default(cuid())
+  userId    String
+  workerId  String
+  createdAt DateTime @default(now())
+
+  user   User           @relation(fields: [userId], references: [id])
+  worker Worker         @relation(fields: [workerId], references: [id])
+  ledger CreditLedger[]
+
+  @@unique([userId, workerId])
+  @@index([userId])
+}
+
+model Job {
+  id String @id @default(cuid())
+  ownerId String
+  owner User @relation("JobOwner", fields: [ownerId], references: [id])
+  title String
+  category String
+  employmentType String
+  description String
+  city String
+  area String
+  latitude Float
+  longitude Float
+  payInr Int
+  payPeriod String
+  schedule String
+  status String @default("OPEN")
+  visible Boolean @default(true)
+  assignedWorkerId String?
+  assignedWorker Worker? @relation("AssignedWorker", fields: [assignedWorkerId], references: [id])
+  applications JobApplication[]
+  review Review?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([status, visible, city, category, createdAt])
+  @@index([status, visible, latitude, longitude])
+  @@index([ownerId, createdAt])
+}
+
+model JobApplication {
+  id String @id @default(cuid())
+  jobId String
+  workerId String
+  job Job @relation(fields: [jobId], references: [id])
+  worker Worker @relation(fields: [workerId], references: [id])
+  message String
+  status String @default("APPLIED")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@unique([jobId, workerId])
+  @@index([workerId, createdAt])
+  @@index([jobId, status])
+}
+
+model Review {
+  id String @id @default(cuid())
+  jobId String @unique
+  job Job @relation(fields: [jobId], references: [id])
+  workerId String
+  worker Worker @relation(fields: [workerId], references: [id])
+  authorId String
+  author User @relation("ReviewAuthor", fields: [authorId], references: [id])
+  stars Int
+  comment String
+  createdAt DateTime @default(now())
+  @@index([workerId, createdAt])
+}
+
+model SiteSettings {
+  id String @id @default("main")
+  headline String @default("Good help. Close to home.")
+  description String @default("Browse local worker profiles for free. Choose a resume pack to unlock the people who fit your home.")
+  announcement String @default("")
+  defaultCity String @default("Pune")
+  jobPostingEnabled Boolean @default(false)
+  updatedAt DateTime @updatedAt
+}
+
+model AuditEntry {
+  id String @id @default(cuid())
+  actorId String
+  actor User @relation(fields: [actorId], references: [id])
+  action String
+  targetId String
+  details String
+  createdAt DateTime @default(now())
+  @@index([createdAt])
+}

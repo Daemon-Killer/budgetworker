@@ -1,65 +1,123 @@
 import Image from "next/image";
+import { DirectoryPage } from "@/components/directory/DirectoryPage";
+import { getSettings } from "@/lib/marketplace";
+import { ServiceCards, type ServiceCard } from "@/components/directory/ServiceCards";
 
-export default function Home() {
+const services: ServiceCard[] = [
+  {
+    category: "HOUSEKEEPING",
+    title: "Housekeeping",
+    description: "Cleaning, tidying and everyday household upkeep.",
+    image: "/images/services/housekeeping.png",
+    imageAlt: "Budget Worker housekeeper cleaning a family home",
+  },
+  {
+    category: "ALLROUNDER",
+    title: "All-round home help",
+    description: "Cooking and housekeeping support from one helper.",
+    image: "/images/services/all-rounder.png",
+    imageAlt: "Budget Worker all-round home support for housekeeping and cooking",
+  },
+  {
+    category: "BABYCARE",
+    title: "Childcare",
+    description: "Help with playtime, routines and day-to-day child care.",
+    image: "/images/services/childcare.png",
+    imageAlt: "Budget Worker caregiver playing with a child at home",
+  },
+  {
+    category: "JAPA",
+    title: "Newborn & mother care",
+    description: "Japa and postnatal support for mothers and newborns.",
+    image: "/images/services/newborn-care.png",
+    imageAlt: "Budget Worker caregiver supporting a mother and her newborn",
+  },
+  {
+    category: "ELDERCARE",
+    title: "Eldercare",
+    description: "Companionship and help with everyday activities at home.",
+    image: "/images/services/eldercare.png",
+    imageAlt: "Budget Worker caregiver offering companionship to an older adult",
+  },
+  {
+    category: "COOK",
+    title: "Cooking",
+    description: "Home cooks for daily meals and your family's food preferences.",
+    image: "/images/home/woman-cooking.jpg",
+    imageAlt: "Home cook preparing a meal",
+    imageFit: "cover",
+  },
+];
+export const dynamic = "force-dynamic";
+export default async function Home({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const [params, s] = await Promise.all([searchParams, getSettings()]);
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <div className="bw-home-directory">
+      <section className="bw-directory-hero">
+        <div>
+          <p className="bw-eyebrow">A LITTLE HELP. A HAPPIER HOME.</p>
+          <h1>{s.headline}</h1>
+          <p>{s.description}</p>
+          <div className="bw-actions">
+            <a href="#services" className="bw-button">Choose a service ↓</a>
+            <a href="#profiles" className="bw-button secondary">Browse profiles</a>
+          </div>
+          <small>
+            Free profiles · Clear expectations · Resume packs from ₹199
+          </small>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+        <div className="bw-directory-photo">
+          <Image
+            src="/images/services/childcare.png"
+            alt="Budget Worker caregiver playing with a child at home"
+            fill
+            sizes="(max-width:760px) 100vw,40vw"
+            preload
+            className="object-contain"
+          />
         </div>
-      </main>
+      </section>
+      <ServiceCards services={services} params={params} />
+      <div id="profiles">
+        <DirectoryPage params={params} />
+      </div>
+      <section className="bw-how">
+        <div>
+          <p className="bw-eyebrow">SIMPLE FROM THE START</p>
+          <h2>Find. Compare. Connect.</h2>
+        </div>
+        <ol>
+          {[
+            [
+              "01",
+              "Choose your criteria",
+              "Use your location or choose an area, then set the type of help, hours and budget.",
+            ],
+            [
+              "02",
+              "Explore worker profiles",
+              "Compare skills, experience, availability and expected pay for free.",
+            ],
+            [
+              "03",
+              "Unlock the right resumes",
+              "Choose an existing resume plan. Each credit unlocks one worker’s resume; repeat downloads are free.",
+            ],
+          ].map(([n, title, body]) => (
+            <li key={n}>
+              <span>{n}</span>
+              <div>
+                <h3>{title}</h3>
+                <p>{body}</p>
+              </div>
+            </li>
+          ))}
+        </ol>
+      </section>
     </div>
   );
 }

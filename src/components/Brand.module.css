@@ -1,0 +1,54 @@
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.mark {
+  position: relative;
+  width: 44px;
+  height: 41px;
+  overflow: hidden;
+  background: white;
+}
+
+.image {
+  position: absolute;
+  width: 88px;
+  height: 88px;
+  max-width: none;
+  left: -22px;
+  top: -19px;
+}
+
+.name {
+  color: #075caf;
+  font-size: 20px;
+  font-weight: 750;
+  letter-spacing: -.7px;
+}
+
+.name > span {
+  color: #299637;
+}
+
+.brand:focus-visible {
+  outline: 3px solid var(--bw-blue);
+  outline-offset: 5px;
+  border-radius: 5px;
+}
+
+@media (max-width: 760px) {
+  .brand { gap: 6px; }
+  .mark { width: 34px; height: 32px; }
+  .image { width: 68px; height: 68px; left: -17px; top: -15px; }
+  .name { font-size: 16px; letter-spacing: -.6px; }
+}
+
+@media (max-width: 360px) {
+  .brand { gap: 5px; }
+  .mark { width: 30px; height: 28px; }
+  .image { width: 60px; height: 60px; left: -15px; top: -13px; }
+  .name { font-size: 14px; }
+}

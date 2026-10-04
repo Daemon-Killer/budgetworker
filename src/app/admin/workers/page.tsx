@@ -1,0 +1,1 @@
+import {requireAdminPage} from '@/lib/admin';import {AdminDirectory} from '@/components/directory/AdminDirectory';export const dynamic='force-dynamic';export default async function Workers(){await requireAdminPage('/admin/workers');return <AdminDirectory/>;}

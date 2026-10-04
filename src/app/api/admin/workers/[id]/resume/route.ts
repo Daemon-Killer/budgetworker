@@ -1,0 +1,93 @@
+import { requireAdmin } from "@/lib/auth";
+import { prisma } from "@/lib/db";
+import { jsonError, jsonOk } from "@/lib/api";
+
+const MAX_BYTES = 4 * 1024 * 1024; // 4MB (Vercel body limit friendly)
+const ALLOWED = new Set([
+  "application/pdf",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "image/jpeg",
+  "image/png",
+]);
+
+/**
+ * Internal: upload resume file for a worker (multipart form field "file").
+ */
+export async function POST(
+  req: Request,
+  ctx: { params: Promise<{ id: string }> },
+) {
+  try {
+    await requireAdmin(req);
+    const { id } = await ctx.params;
+
+    const form = await req.formData();
+    const file = form.get("file");
+    if (!file || !(file instanceof File)) {
+      return jsonError(
+        Object.assign(new Error("file required"), { status: 400 }),
+      );
+    }
+    if (file.size > MAX_BYTES) {
+      return jsonError(
+        Object.assign(new Error("File too large (max 4MB)"), { status: 400 }),
+      );
+    }
+    const mime = file.type || "application/octet-stream";
+    if (
+      !ALLOWED.has(mime) &&
+      !file.name.match(/\.(pdf|doc|docx|jpg|jpeg|png)$/i)
+    ) {
+      return jsonError(
+        Object.assign(new Error("Upload PDF, DOC, DOCX, JPG or PNG"), {
+          status: 400,
+        }),
+      );
+    }
+
+    const buf = Buffer.from(await file.arrayBuffer());
+    const worker = await prisma.worker.update({
+      where: { id },
+      data: {
+        resumeFileName: file.name.slice(0, 200),
+        resumeMimeType: mime,
+        resumeSize: buf.length,
+        resumeData: buf,
+      },
+      select: {
+        id: true,
+        name: true,
+        resumeFileName: true,
+        resumeMimeType: true,
+        resumeSize: true,
+      },
+    });
+
+    return jsonOk({ worker });
+  } catch (e) {
+    return jsonError(e);
+  }
+}
+
+export async function DELETE(
+  req: Request,
+  ctx: { params: Promise<{ id: string }> },
+) {
+  try {
+    await requireAdmin(req);
+    const { id } = await ctx.params;
+    await prisma.worker.update({
+      where: { id },
+      data: {
+        resumeFileName: null,
+        resumeMimeType: null,
+        resumeSize: null,
+        resumeData: null,
+      },
+    });
+    return jsonOk({ ok: true });
+  } catch (e) {
+    return jsonError(e);
+  }
+}

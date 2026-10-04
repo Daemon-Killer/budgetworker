@@ -1,36 +1,48 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+﻿# Budget Worker
 
-## Getting Started
+Location-based home-help directory. Consumers browse free worker profiles, filter by city/area or GPS radius, type of help, work arrangement, daily hours and expected pay. Full resumes require one credit each, purchased through the existing resume plans. Repeated downloads of an unlocked resume are free. Worker mode is deferred.
 
-First, run the development server:
+## GitHub branches
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+- `main`: deployed Next.js website, API, Prisma schema/migrations, public assets, shared contracts and backend tests.
+- `app`: builds on `main` and adds the Expo Android/iOS app in `mobile/`. The API and shared contracts remain available so both clients can be developed together.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Clone `main` for website work. For app work, use `git clone --branch app https://github.com/Daemon-Killer/budgetworker.git`, then `cd budgetworker/mobile`. Merge backend/shared changes from `main` into `app` as needed; app-specific files belong on `app`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Secrets, production OTP credentials, database backups, APKs, generated native folders and dependencies are excluded. Copy the relevant `.env.example` for local configuration.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Workspaces
 
-## Learn More
+- `/` and `/workers`: directory and filters; `/workers/[id]`: free details and paid resume access.
+- `/packs` and `/account`: plans, credits and saved resumes.
+- `/admin/workers`: add/edit worker details, upload a resume, publish/hide profiles and choose neighbourhood locations.
+- `/admin/marketplace`: homepage text and announcements.
+- On `app`, `mobile/`: Expo SDK 57 Android/iOS app with consumer and admin modes. Old job routes remain dormant for future work; job posting is disabled.
 
-To learn more about Next.js, take a look at the following resources:
+## Local review and validation
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Run `npm install`, then `npm run dev:preview`. It starts an isolated, temporary PostgreSQL database and website at http://localhost:3000, with no production seeding. Local customer phone: 9876543210; admin: 9999999999; OTP: 123456. Hosted testing uses restricted server-configured test access; see DEPLOY.md.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Run `npm run lint`, `npx tsc --noEmit`, `npm run test:migration`, `npm run test:directory` and `npm run build`. The directory integration suite covers location/filter searches, role enforcement, worker/resume management, paywalls, concurrent credit deductions, authenticated downloads and one-use mobile checkout handoff. Payment callback tests cover concurrent fulfillment and invalid callbacks. Stop Prisma-backed previews before regenerating Prisma on Windows if its DLL is locked.
 
-## Deploy on Vercel
+On the `app` branch, inside `mobile/`, run `npm run lint`, `npm run typecheck` and `npx expo export --platform all`. Native device acceptance and store signing are separate release steps.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Architecture and rollout
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Next.js 16.3.8, React 19, TypeScript, Prisma 5 and PostgreSQL. Shared directory contracts live in `shared/directory.ts`. Cookie and native bearer authentication share database-enforced roles. Native tokens use SecureStore. Public responses omit private phone numbers, internal notes, precise coordinates and resume bytes.
+
+Directory searches apply all filters and geographic distance before pagination. Structured prices are compared only within the selected pay period. Legacy salary text is retained; ambiguous amounts require admin review before price filtering. Admin drafts publish after the resume upload succeeds. Resume unlocks and payment fulfillment lock the relevant database rows to prevent duplicate debits or credits.
+
+The additive `20261004170000_worker_directory` migration preserves prior records and resumes, adds structured pay/hours, disables job posting and adds short-lived checkout tickets. Back up the database before running `npm run db:deploy`. Deploy the web API before distributing the mobile app. Production builds require a session secret of at least 32 characters, real admin phones and configured SMS delivery.
+
+Mobile checkout uses a two-minute, one-use browser handoff; no bearer tokens appear in download URLs. Android/iOS production API URL is https://budgetworker.in. Android review APKs use test signing; App Store/Play Store releases need account credentials and production signing.
+
+Admin neighbourhood lookup uses the public Photon/OpenStreetMap service with caching and an explicit lookup action. `GEOCODER_URL` can point to a dedicated provider or self-hosted Photon for production scale; the public demo has no availability guarantee. City/area entry works without a map pin, but GPS radius results require worker coordinates.
+
+## Current limits
+
+Temporary production testing can use `OTP_MODE=dev` only with `ALLOW_PRODUCTION_DEV_OTP=true`, an owner-held 8–10 digit `DEV_OTP_CODE`, approved `DEV_OTP_PHONES`, and `TEST_ADMIN_PHONES` as a subset. Hosted test codes are never returned to clients or written to application logs. Users request a login challenge and manually enter the private code; expiry, one-use challenges and attempt limits still apply. Repeated test requests reuse the unconsumed challenge without resetting its ten-minute expiry or five incorrect attempts. Test mode permits 30 new challenges per phone/code per hour independently of earlier SMS requests; SMS retains `OTP_MAX_PER_PHONE_HOUR` (default five). Local preview continues to show `123456`. Restore `OTP_MODE=msg91` and disable the opt-in after DLT setup; rotate the temporary code if it is shared outside the test team. Admin roles assigned to approved test owners persist in the database.
+
+Razorpay is configured with test credentials; real purchases require live keys and a live-payment verification. Resumes remain database bytes with a 4 MB upload limit. Admin lists show the latest 100 workers. Scalability has not been load-tested; growing volumes need PostGIS/search indexes, paginated admin operations and private object storage. Native GPS, document opening and checkout return should be verified on real devices before broad distribution.
+
+Review the current dependency audit before a public or store release. No forced framework downgrade has been applied.

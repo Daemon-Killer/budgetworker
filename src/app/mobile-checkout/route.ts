@@ -1,0 +1,5 @@
+import {createHash} from 'node:crypto';import {NextResponse} from 'next/server';
+import {prisma} from '@/lib/db';import {createSessionToken,setSessionCookie} from '@/lib/auth';
+export async function GET(req:Request){const url=new URL(req.url);const ticket=url.searchParams.get('t');if(!ticket||ticket.length>100)return NextResponse.redirect(new URL('/login?next=/packs',url));
+const user=await prisma.$transaction(async tx=>{const id=createHash('sha256').update(ticket).digest('hex');const updated=await tx.checkoutTicket.updateMany({where:{id,consumed:false,expiresAt:{gt:new Date()}},data:{consumed:true}});if(!updated.count)return null;const row=await tx.checkoutTicket.findUnique({where:{id},include:{user:true}});return row?.user??null;});
+if(!user)return NextResponse.redirect(new URL('/login?next=/packs',url));await setSessionCookie(await createSessionToken(user));const res=NextResponse.redirect(new URL('/packs?from=mobile',url));res.headers.set('Cache-Control','no-store');res.headers.set('Referrer-Policy','no-referrer');return res;}

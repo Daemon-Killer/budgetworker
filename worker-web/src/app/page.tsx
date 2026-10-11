@@ -226,15 +226,29 @@ export default function WorkerApp() {
     setJobs(list.jobs);
     return a;
   }
+  function chooseLanguage(next: "hi" | "en") {
+    setLanguage(next);
+    try {
+      localStorage.setItem("saathi-language", next);
+    } catch {
+      // Keep the selection usable when storage is unavailable.
+    }
+  }
   useEffect(() => {
     (async () => {
+      // Restore local preferences before making the session request.
+      await Promise.resolve();
       try {
-        const s = await api<{ user: typeof user }>("/api/auth/me");
         const lang = localStorage.getItem("saathi-language");
         if (lang === "hi" || lang === "en") {
           setLanguage(lang);
           setStage("login");
         }
+      } catch {
+        // Use the default language when storage is unavailable.
+      }
+      try {
+        const s = await api<{ user: typeof user }>("/api/auth/me");
         if (s.user) {
           await loadAccount();
           setUser(s.user);
@@ -527,9 +541,9 @@ export default function WorkerApp() {
       <main className="splash" role="status">
         <Logo large />
         <p>
-          आपके साथ
+          {t("आपके साथ", "By your side")}
           <br />
-          बेहतर काम के लिए
+          {t("बेहतर काम के लिए", "For better work")}
         </p>
         <span className="loading-dots">•••</span>
         <small>Trusted Homes. Better Futures.</small>
@@ -541,9 +555,9 @@ export default function WorkerApp() {
         <section className="welcome-art">
           <Logo large />
           <h1>
-            काम मिले आसानी से.
+            {t("काम मिले आसानी से.", "Find work easily.")}
             <br />
-            शर्तें पता हों पहले से.
+            {t("शर्तें पता हों पहले से.", "Know the duties before joining.")}
           </h1>
           <p>Better Work. Brighter Tomorrows.</p>
           <div className="trust-strip">
@@ -557,11 +571,9 @@ export default function WorkerApp() {
           {stage === "language" ? (
             <>
               <span className="step-label">01 / 04</span>
-              <h1>अपनी भाषा चुनें</h1>
+              <h1>{t("अपनी भाषा चुनें", "Choose your language")}</h1>
               <p className="muted">
-                जिस भाषा में आप आसानी से समझ सकें, उसे चुनें।
-                <br />
-                Choose the language you’re comfortable with.
+                {t("जिस भाषा में आप आसानी से समझ सकें, उसे चुनें।", "Choose the language you’re comfortable with.")}
               </p>
               <div className="language-list">
                 {[
@@ -573,7 +585,7 @@ export default function WorkerApp() {
                     className={
                       language === key ? "language selected" : "language"
                     }
-                    onClick={() => setLanguage(key as "hi" | "en")}
+                    onClick={() => chooseLanguage(key as "hi" | "en")}
                     aria-pressed={language === key}
                   >
                     <span className="tile">अ</span>
@@ -590,7 +602,7 @@ export default function WorkerApp() {
               <button
                 className="primary wide"
                 onClick={() => {
-                  localStorage.setItem("saathi-language", language);
+                  chooseLanguage(language);
                   setStage("login");
                 }}
               >
@@ -711,8 +723,7 @@ export default function WorkerApp() {
             className="language-toggle"
             onClick={() => {
               const next = language === "hi" ? "en" : "hi";
-              setLanguage(next);
-              localStorage.setItem("saathi-language", next);
+              chooseLanguage(next);
             }}
           >
             {language === "hi" ? "English" : "हिंदी"}

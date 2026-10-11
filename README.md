@@ -1,6 +1,6 @@
 ﻿# Budget Worker
 
-Location-based home-help directory. Consumers browse free worker profiles, filter by city/area or GPS radius, type of help, work arrangement, daily hours and expected pay. Full resumes require one credit each, purchased through the existing resume plans. Repeated downloads of an unlocked resume are free. Worker mode is deferred.
+Location-based home-help directory. Consumers browse free worker profiles, filter by city/area or GPS radius, type of help, work arrangement, daily hours and expected pay. Full resumes require one credit each, purchased through the existing resume plans. Repeated downloads of an unlocked resume are free. A separate worker web app in `worker-web/` supports phone registration, profile and availability management, and viewing interview invitations. See [worker web setup](worker-web/README.md).
 
 ## GitHub branches
 

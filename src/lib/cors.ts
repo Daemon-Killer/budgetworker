@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 export async function withCors(req: Request, handler: () => Promise<Response>) {
   const origin = req.headers.get("origin");
-  const configured = (
+  const mobileOrigins = (
     process.env.MOBILE_WEB_ORIGINS ??
     (process.env.NODE_ENV === "development"
       ? "http://localhost:8081,http://127.0.0.1:8081"
@@ -10,12 +10,26 @@ export async function withCors(req: Request, handler: () => Promise<Response>) {
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean);
+  const workerOrigins = (
+    process.env.WORKER_WEB_ORIGINS ||
+    (process.env.NODE_ENV === "development"
+      ? "http://localhost:3001,http://127.0.0.1:3001"
+      : "")
+  )
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const configured = [...mobileOrigins, ...workerOrigins];
   const url = new URL(req.url);
   const same = url.protocol + "//" + (req.headers.get("host") ?? url.host);
   const publicOrigin = process.env.NEXT_PUBLIC_SITE_URL
     ? new URL(process.env.NEXT_PUBLIC_SITE_URL).origin
     : null;
-  const allowed = !origin || origin === same || origin === publicOrigin || configured.includes(origin);
+  const allowed =
+    !origin ||
+    origin === same ||
+    origin === publicOrigin ||
+    configured.includes(origin);
   if (!allowed)
     return NextResponse.json({ error: "Origin not allowed" }, { status: 403 });
   const res =

@@ -159,6 +159,8 @@ model Worker {
   longitude Float?
   serviceRadiusKm Int @default(10)
   onboardingStatus String @default("APPROVED")
+  documents WorkerDocument[]
+  supportRequests WorkerSupportRequest[]
   applications JobApplication[]
   assignedJobs Job[] @relation("AssignedWorker")
   reviews Review[]
@@ -344,4 +346,30 @@ model WorkerLead {
   createdAt DateTime @default(now())
   @@index([createdAt])
   @@index([phone, createdAt])
+}
+
+// Private worker uploads; never exposed through the public worker directory.
+model WorkerDocument {
+  id String @id @default(cuid())
+  workerId String
+  worker Worker @relation(fields: [workerId], references: [id], onDelete: Cascade)
+  kind String
+  fileName String
+  mimeType String
+  data Bytes
+  status String @default("PENDING")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@unique([workerId, kind])
+}
+
+model WorkerSupportRequest {
+  id String @id @default(cuid())
+  workerId String
+  worker Worker @relation(fields: [workerId], references: [id], onDelete: Cascade)
+  topic String
+  message String
+  status String @default("OPEN")
+  createdAt DateTime @default(now())
+  @@index([workerId, createdAt])
 }

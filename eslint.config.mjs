@@ -15,6 +15,8 @@ const eslintConfig = defineConfig([
     ".next-*/**",
     "worker-web/.next*/**",
     "worker-web/next-env.d.ts",
+    "worker-web/out/**",
+    "public/saathi/**",
     "mobile/**",
     "out/**",
     "build/**",

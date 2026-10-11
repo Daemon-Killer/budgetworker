@@ -50,5 +50,31 @@ try {
   await db.worker.create({ data: { name: 'Unlinked legacy profile', phone: duplicateUser.phone, category: 'HOUSEKEEPING' } });
   const duplicate = await login(duplicateUser.phone);
   await api('worker-account', { token: duplicate, method: 'PUT', body: input, status: 409 });
+  // Saathi documents are private, bounded, and cannot self-approve identity.
+  const image = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aKqkAAAAASUVORK5CYII=', 'base64');
+  async function upload(token, kind, body, expected) {
+    const res = await fetch(base + 'worker-account/documents?kind=' + kind, { method: 'PUT', headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'image/png' }, body });
+    assert.equal(res.status, expected); checks++; return res.json();
+  }
+  await upload(second, 'OTHER', image, 400);
+  await upload(second, 'PHOTO', Buffer.from('not an image'), 400);
+  await upload(second, 'PHOTO', Buffer.alloc(2 * 1024 * 1024 + 1), 413);
+  const doc = (await upload(second, 'AADHAAR', image, 200)).document;
+  assert.equal(doc.status, 'PENDING'); assert.equal(doc.data, undefined);
+  let download = await fetch(base + 'worker-account/documents?id=' + doc.id, { headers: { Authorization: 'Bearer ' + worker } });
+  assert.equal(download.status, 404); checks++;
+  download = await fetch(base + 'worker-account/documents?id=' + doc.id); assert.equal(download.status, 401); checks++;
+  for (const token of [second, admin]) {
+    download = await fetch(base + 'worker-account/documents?id=' + doc.id, { headers: { Authorization: 'Bearer ' + token } });
+    assert.equal(download.status, 200); assert.equal(download.headers.get('cache-control'), 'private, no-store'); assert.deepEqual(Buffer.from(await download.arrayBuffer()), image); checks++;
+  }
+  await db.worker.update({ where: { id: registered.id }, data: { aadhaarVerified: true } });
+  await upload(second, 'AADHAAR', image, 200);
+  assert.equal((await api('worker-account', { token: second })).verification.aadhaarVerified, false);
+  await api('worker-account/support', { token: second, method: 'POST', body: { topic: 'SALARY', message: 'Please help with my pending salary.' }, status: 201 });
+  const support = await api('worker-account', { token: second }); assert.equal(support.supportRequests.length, 1); assert.equal(support.documents.length, 1);
+  const isolated = await api('worker-account', { token: worker }); assert.equal(isolated.supportRequests.length, 0); assert.equal(isolated.documents.length, 0);
+  await api('worker-account/support', { token: second, method: 'POST', body: { topic: 'UNKNOWN', message: 'Invalid topic' }, status: 400 });
+  await api('worker-account/support', { method: 'POST', body: { topic: 'OTHER', message: 'Unauthenticated' }, status: 401 });
   console.log(`PASS: ${checks} worker API checks; registration, approval, account isolation, private fields, availability, invitations, and duplicate protection.`);
 } finally { await db.$disconnect(); }

@@ -2,6 +2,7 @@ import type { NextConfig } from "next";
 import path from "path";
 
 const nextConfig: NextConfig = {
+  async rewrites() { return [{ source: "/saathi", destination: "/saathi/index.html" }]; },
   distDir: process.env.NEXT_DIST_DIR ?? ".next",
   allowedDevOrigins: [
     "127.0.0.1",

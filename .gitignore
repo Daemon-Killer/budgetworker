@@ -53,3 +53,7 @@ mobile/android/
 mobile/ios/
 mobile/.gradle/
 mobile/.kotlin/
+
+# Generated embedded Saathi web build
+public/saathi/
+worker-web/out/

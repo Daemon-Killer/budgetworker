@@ -12,11 +12,13 @@ Open `/admin/interviews`. Contact the family and worker privately, choose the ag
 
 After a successful conversation, manually mark it completed. Both participants must have opened call access and the scheduled start time must have passed. These access timestamps prove credentials were issued, not that a conversation happened: staff must verify completion. Mark a no-show after the join window ends, or cancel and retry a failed call. A completed interview consumes the included allowance permanently.
 
-## Daily setup
+## Self-hosted LiveKit setup
 
-Add `DAILY_API_KEY` as a **server-only Secret** in the existing Vercel project's Production environment and deploy again. Never use a `NEXT_PUBLIC_` prefix or commit the key. Set `APP_URL` or `NEXT_PUBLIC_SITE_URL` to `https://budgetworker.in` so private invitations and mobile handoffs use the canonical website.
+Prepare the India VM using [infra/livekit/README.md](infra/livekit/README.md). Add `LIVEKIT_URL`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET` and `LIVEKIT_GUARD_SECRET` to the existing Vercel project's Production environment and deploy again. Keep secrets server-only; never use a `NEXT_PUBLIC_` prefix or commit them. Set `APP_URL` to `https://budgetworker.in` so invitations, gateway booking checks and mobile handoffs use the canonical website.
 
-Without the key, requests, scheduling and worker acceptance work, and screens show that calls are awaiting setup. With the key, Daily creates private two-person rooms and expiring participant tokens. Camera starts off. Chat, recording controls, transcription and screen sharing are disabled. Verify a real family/worker call on desktop, Android and iPhone before opening the pilot beyond testing.
+Without these settings, requests, scheduling and worker acceptance work, and screens show that calls are awaiting setup. The custom Budget Worker call screen starts camera-off with an explicit microphone permission button. It supports mute, optional camera, audio playback recovery, reconnect and leave. There is no chat, screen sharing or recording service. The mobile app uses the same call screen in a secure browser handoff.
+
+Tokens allow joining only the booked room as one of its two participants. They expire after at most two minutes for initial admission. Return to the booking and join again if you wait longer at the device check. Self-hosted LiveKit refreshes active tokens and does not revoke old tokens on participant removal. Our mandatory gateway checks the current booking on every connection/reconnection, persists cancellation tombstones and terminates the room before acknowledging a cancellation. A guardian polls every five seconds and enforces the existing join-window deadline. Do not expose LiveKit's private signaling port or deploy without this gateway. The 15-minute interview remains the planned conversation duration; the existing access window (10 minutes before to 30 minutes after the scheduled time) is unchanged.
 
 ## Resume privacy
 
@@ -28,4 +30,4 @@ The `app` branch includes request and booking screens and admin coordination. Ca
 
 ## Verification
 
-Run `npm run test:interviews` for isolated API/database tests with a fake Daily service. It uses fictional users and never spends real calling minutes. Run the directory and migration tests, TypeScript, ESLint and the production build. Real audio/video quality and device permissions still require a configured Daily account and two actual devices.
+Run `npm run test:interviews` for isolated API/database tests using the actual LiveKit token SDK and a local media API fixture. Run `node --test infra/livekit/gateway/test.mjs` for admission, replay after revocation/restart, WebSocket closure, deadlines and outage tests. Run directory tests, TypeScript, ESLint and the production build. The optional real-server smoke test is described in the hosting guide. Real audio/video quality, TURN fallback and permissions still require the India VM and two actual devices; fixture tests cannot establish those.

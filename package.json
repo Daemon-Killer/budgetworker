@@ -24,10 +24,11 @@
     "seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
-    "@daily-co/daily-js": "^0.93.0",
     "@prisma/client": "^5.22.0",
     "dotenv": "^17.4.2",
     "jose": "^6.2.7",
+    "livekit-client": "2.22.4",
+    "livekit-server-sdk": "2.19.1",
     "nanoid": "^6.0.0",
     "next": "^16.3.8",
     "razorpay": "^2.9.8",

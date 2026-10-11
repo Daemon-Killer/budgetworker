@@ -1,0 +1,36 @@
+# Linux only: host networking is needed for WebRTC media sockets.
+services:
+  livekit:
+    image: livekit/livekit-server:v1.13.9
+    command: --config /etc/livekit.yaml
+    restart: unless-stopped
+    network_mode: host
+    volumes:
+      - ./generated/livekit.yaml:/etc/livekit.yaml:ro
+  gateway:
+    build: ./gateway
+    restart: unless-stopped
+    network_mode: host
+    env_file: ./generated/gateway.env
+    volumes:
+      - gateway_state:/state
+    depends_on:
+      - livekit
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:8090/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+  caddy:
+    image: livekit/caddyl4@sha256:9dd090159a6042a907dbff0ce9dda27a21d2a559dc7b03b60a8e6b1b60b8348e
+    command: run --config /etc/caddy.yaml --adapter yaml
+    restart: unless-stopped
+    network_mode: host
+    volumes:
+      - ./generated/caddy.yaml:/etc/caddy.yaml:ro
+      - caddy_data:/data
+    depends_on:
+      - gateway
+volumes:
+  gateway_state:
+  caddy_data:

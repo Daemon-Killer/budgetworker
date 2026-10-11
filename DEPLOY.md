@@ -34,7 +34,7 @@ Git integration, if connected later, should deploy only main with the existing e
 
 ## Interview pilot
 
-See INTERVIEWS.md for family/admin flows and Daily setup. The interview and resume contact-review migrations are additive. Take and verify an encrypted backup before applying them. Existing resume bytes remain stored, but staff must review/remove contact details and re-upload before family downloads resume. Existing unlocks retain their included interview. Scheduling can launch while DAILY_API_KEY is absent; real calls require that server-only Production Secret and a new deployment.
+See INTERVIEWS.md for family/admin flows and infra/livekit/README.md for the India VM setup. The LiveKit replacement needs no database migration. The earlier interview and resume contact-review migrations are additive; take and verify an encrypted backup before applying those. Existing resume bytes remain stored, but staff must review/remove contact details and re-upload before family downloads resume. Existing unlocks retain their included interview. Scheduling works while LiveKit settings are absent; real calls require the VM, DNS, server-only settings and a new website deployment.
 
 ## Mobile
 

@@ -21,7 +21,7 @@ async function login(phone) {
 const future = minutes => new Date(Date.now() + minutes * 60_000).toISOString();
 const privateKeys = ['workerPhone', 'familyPhone', 'phone', 'inviteHash', 'inviteExpiresAt', 'roomName', 'roomUrl', 'token', 'userId', 'internalNotes'];
 function noPrivateData(view) { for (const key of privateKeys) assert.equal(view[key], undefined, 'Private ' + key); checks++; }
-async function fixture(path, body) { return (await fetch(process.env.TEST_DAILY_URL + path, { method: body ? 'POST' : 'GET', ...(body ? { body: JSON.stringify(body) } : {}) })).json(); }
+async function fixture(path, body) { return (await fetch(process.env.TEST_LIVEKIT_URL + path, { method: body ? 'POST' : 'GET', ...(body ? { body: JSON.stringify(body) } : {}) })).json(); }
 
 try {
   const admin = await login('9999999999');
@@ -124,22 +124,29 @@ try {
   await db.worker.update({ where: { id: secondWorker.id }, data: { status: 'INACTIVE' } });
   await api('admin/interviews/' + secondInterview.id, { token: admin, method: 'PATCH', body: { action: 'CONFIRM', version: secondInterview.version, scheduledAt: future(80) }, status: 409 });
   await api('interviews/' + secondInterview.id, { token: family, method: 'PATCH', body: { action: 'RESCHEDULE', version: secondInterview.version, proposedSlots: [future(80)] }, status: 409 });
-  await fixture('/__fixture/fail', { path: '/v1/meeting-tokens' });
+  await fixture('/__fixture/fail', { path: '/twirp/livekit.RoomService/CreateRoom' });
   await api('interviews/' + interview.id + '/join', { token: family, method: 'POST', status: 503 });
   assert.equal((await db.interview.findUnique({ where: { id: interview.id } })).familyJoinedAt, null); checks++;
   await fixture('/__fixture/fail', { path: '' });
   const familyCall = await api('interviews/' + interview.id + '/join', { token: family, method: 'POST' });
   const workerCall = await api('interviews/invite/' + invitation.token, { method: 'POST', body: { action: 'JOIN' } });
-  assert.equal(familyCall.roomUrl, workerCall.roomUrl); assert.notEqual(familyCall.token, workerCall.token); assert.equal(new URL(familyCall.roomUrl).search, ''); checks++;
+  assert.equal(familyCall.serverUrl, workerCall.serverUrl); assert.equal(familyCall.roomName, workerCall.roomName); assert.notEqual(familyCall.token, workerCall.token); assert.equal(new URL(familyCall.serverUrl).search, ''); checks++;
   const provider = await fixture('/__fixture/requests');
-  const createdRoom = provider.find(r => r.pathname === '/v1/rooms' && r.method === 'POST').body;
-  assert.equal(createdRoom.privacy, 'private'); assert.equal(createdRoom.properties.max_participants, 2); assert.equal(createdRoom.properties.enforce_unique_user_ids, true); assert.equal(createdRoom.properties.enable_chat, false); assert.equal(createdRoom.properties.eject_at_room_exp, true); checks++;
-  for (const r of provider.filter(r => r.pathname === '/v1/meeting-tokens')) {
-    assert.equal(r.body.properties.is_owner, false); assert.equal(r.body.properties.room_name, createdRoom.name); assert.equal(r.body.properties.eject_at_token_exp, true); assert.equal(r.body.properties.enable_recording_ui, false); assert.equal(r.body.properties.start_cloud_recording, false); assert.ok(r.body.properties.exp > Date.now() / 1000); assert.ok(!/\d{10}|@/.test(r.body.properties.user_name)); checks++;
+  const createdRoom = provider.find(r => r.pathname === '/twirp/livekit.RoomService/CreateRoom').body;
+  assert.equal(createdRoom.maxParticipants, 2); assert.equal(createdRoom.emptyTimeout, 60); assert.equal(JSON.parse(createdRoom.metadata).endsAt, familyCall.endsAt); checks++;
+  const { TokenVerifier } = await import('livekit-server-sdk');
+  const verifier = new TokenVerifier(process.env.LIVEKIT_API_KEY, process.env.LIVEKIT_API_SECRET);
+  for (const call of [familyCall, workerCall]) {
+    const claims = await verifier.verify(call.token, 0);
+    assert.equal(claims.video.roomJoin, true); assert.equal(claims.video.room, createdRoom.name); assert.ok(!claims.video.roomAdmin); assert.ok(!claims.video.roomRecord); assert.equal(claims.video.canPublishData, false); assert.deepEqual(claims.video.canPublishSources, ['camera', 'microphone']); assert.ok(claims.exp > Date.now() / 1000 && claims.exp <= Date.now() / 1000 + 121); assert.ok(!/\d{10}|@/.test(claims.name)); checks++;
+    const access = await api('interviews/call-access', { token: process.env.LIVEKIT_GUARD_SECRET, method: 'POST', body: { roomName: call.roomName, identity: claims.sub } });
+    assert.equal(access.allowed, true); assert.equal(access.endsAt, call.endsAt); checks++;
   }
+  await api('interviews/call-access', { token: family, method: 'POST', body: { roomName: familyCall.roomName }, status: 401 });
+  assert.equal((await api('interviews/call-access', { token: process.env.LIVEKIT_GUARD_SECRET, method: 'POST', body: { roomName: familyCall.roomName, identity: 'stranger' } })).allowed, false); checks++;
   await api('admin/interviews/' + interview.id, { token: admin, method: 'PATCH', body: { action: 'NO_SHOW', version: interview.version }, status: 409 });
   const mobileCancelTicket = await api('interviews/' + interview.id + '/browser-ticket', { token: family, method: 'POST' });
-  await fixture('/__fixture/fail', { path: '/v1/rooms/' + createdRoom.name + '/eject' });
+  await fixture('/__fixture/fail', { path: '/bw/revoke' });
   await api('interviews/' + interview.id, { token: family, method: 'PATCH', body: { action: 'CANCEL', version: interview.version }, status: 503 });
   assert.equal((await db.interview.findUnique({ where: { id: interview.id } })).status, 'CONFIRMED'); checks++;
   await fixture('/__fixture/fail', { path: '' });
@@ -148,7 +155,8 @@ try {
   await api('interviews/' + interview.id + '/join', { token: family, method: 'POST', status: 409 });
   assert.equal((await fetch(mobileCancelTicket.url, { redirect: 'manual' })).status, 401); checks++;
   const closed = await fixture('/__fixture/requests');
-  assert.ok(closed.some(r => r.pathname.endsWith('/eject') && r.body.ban === true)); assert.ok(closed.some(r => r.method === 'DELETE' && r.pathname.includes(createdRoom.name))); checks++;
+  assert.ok(closed.some(r => r.pathname === '/bw/revoke' && r.body.roomName === createdRoom.name)); checks++;
+  assert.equal((await api('interviews/call-access', { token: process.env.LIVEKIT_GUARD_SECRET, method: 'POST', body: { roomName: familyCall.roomName } })).allowed, false); checks++;
   interview = (await api('interviews/' + interview.id, { token: family, method: 'PATCH', body: { action: 'RESCHEDULE', version: interview.version, proposedSlots: [future(8)] } })).interview;
   invitation = await schedule();
   interview = (await api('interviews/invite/' + invitation.token, { method: 'POST', body: { action: 'ACCEPT' } })).interview;

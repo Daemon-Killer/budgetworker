@@ -37,6 +37,7 @@ outputs/
 *.ipa
 *.zip
 release-build.cjs
+infra/livekit/generated/
 .agents/
 .claude/
 .windsurf/

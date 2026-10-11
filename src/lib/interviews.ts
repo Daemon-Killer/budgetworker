@@ -4,7 +4,7 @@ import { z } from "zod";
 import { prisma } from "./db";
 import type { SessionUser } from "./auth";
 import { InterviewError } from "./interview-errors";
-import { callsConfigured, dailyMeetingToken, ensureDailyRoom, revokeDailyRoom } from "./interview-daily";
+import { callsConfigured, liveKitMeetingToken, ensureLiveKitRoom, revokeLiveKitRoom } from "./interview-livekit";
 import { INTERVIEW_DURATION_MINUTES, INTERVIEW_JOIN_EARLY_MINUTES, INTERVIEW_JOIN_END_MINUTES, INTERVIEW_OUTCOMES, type AdminInterviewView, type InterviewJoin, type InterviewView } from "../../shared/interviews";
 
 // Coordination never needs uploaded resume bytes. Keep list queries small and
@@ -109,10 +109,8 @@ function notCompleted(row: InterviewRow) {
   if (row.completedAt || row.status === "COMPLETED") throw new InterviewError("The included interview for this worker has already been completed.", 409);
 }
 
-function participantIds(row: InterviewRow) { return [`family-${row.userId}`, `worker-${row.workerId}`]; }
-
 async function closeRoom(row: InterviewRow) {
-  if (row.roomName) await revokeDailyRoom(row.roomName, participantIds(row));
+  if (row.roomName) await revokeLiveKitRoom(row.roomName);
 }
 
 const clearAccess = {
@@ -307,12 +305,24 @@ async function joinLocked(tx: Tx, row: InterviewRow, side: "family" | "worker"):
   if (Date.now() < opensAt.getTime()) throw new InterviewError("Your call opens ten minutes before the scheduled interview.", 409);
   if (Date.now() >= endsAt.getTime()) throw new InterviewError("This interview's join window has ended. Ask Budget Worker to arrange a retry.", 409);
   const name = row.roomName || `bw-${row.id}-${row.roomGeneration}`;
-  const url = await ensureDailyRoom(name, opensAt, endsAt);
+  const url = await ensureLiveKitRoom(name, endsAt);
   const displayName = side === "family" ? safeDisplayName(row.user.name, "Family") : safeDisplayName(row.worker.name, "Worker");
   const identity = side === "family" ? `family-${row.userId}` : `worker-${row.workerId}`;
-  const token = await dailyMeetingToken(name, identity, displayName, endsAt);
+  const token = await liveKitMeetingToken(name, identity, displayName, endsAt);
   await tx.interview.update({ where: { id: row.id }, data: { roomName: name, roomUrl: url, ...(side === "family" ? { familyJoinedAt: row.familyJoinedAt || new Date() } : { workerJoinedAt: row.workerJoinedAt || new Date() }) } });
-  return { roomUrl: url, token, displayName };
+  return { serverUrl: url, roomName: name, token, displayName, endsAt: endsAt.toISOString() };
+}
+
+/** Only the trusted VM gateway calls this; never return phone/contact data. */
+export async function interviewCallAccess(input: unknown) {
+  const data = parse(z.object({ roomName: z.string().regex(/^bw-[A-Za-z0-9_-]{1,150}$/), identity: z.string().max(150).optional() }).strict(), input);
+  const row = await prisma.interview.findFirst({ where: { roomName: data.roomName }, include });
+  if (!row || !row.scheduledAt || row.status !== "CONFIRMED" || row.worker.status !== "AVAILABLE" || row.worker.onboardingStatus !== "APPROVED") return { allowed: false };
+  const now = Date.now(), end = row.scheduledAt.getTime() + INTERVIEW_JOIN_END_MINUTES * MINUTE;
+  if (now < row.scheduledAt.getTime() - INTERVIEW_JOIN_EARLY_MINUTES * MINUTE || now >= end) return { allowed: false };
+  const identities = [ ...(row.familyJoinedAt ? [`family-${row.userId}`] : []), ...(row.workerJoinedAt ? [`worker-${row.workerId}`] : []) ];
+  if (data.identity && !identities.includes(data.identity)) return { allowed: false };
+  return { allowed: true, identities, endsAt: new Date(end).toISOString() };
 }
 
 export async function joinFamilyInterview(user: SessionUser, id: string) {

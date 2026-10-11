@@ -19,6 +19,7 @@ export async function Nav() {
           </Link>
           {user ? (
             <>
+              <Link href="/account/interviews">Interviews</Link>
               <Link href="/account" className="bw-desktop-only">
                 Account
               </Link>

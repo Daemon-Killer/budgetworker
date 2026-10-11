@@ -60,6 +60,7 @@ export function AdminDirectory() {
     [draft, setDraft] = useState<Draft | null>(null),
     [id, setId] = useState<string | null>(null),
     [file, setFile] = useState<File | null>(null),
+    [contactReviewed, setContactReviewed] = useState(false),
     [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
     [notice, setNotice] = useState(""),
@@ -91,6 +92,7 @@ export function AdminDirectory() {
     setError("");
     setNotice("");
     setFile(null);
+    setContactReviewed(false);
     setPlaces([]);
     setId(w?.id ?? null);
     setDraft(
@@ -133,6 +135,10 @@ export function AdminDirectory() {
   async function save(e: React.FormEvent) {
     e.preventDefault();
     if (!draft) return;
+    if (file && !contactReviewed) {
+      setError("Review the resume and remove contact details before uploading.");
+      return;
+    }
     setBusy(true);
     setError("");
     let saved = id;
@@ -146,6 +152,7 @@ export function AdminDirectory() {
       if (file) {
         const form = new FormData();
         form.append("file", file);
+        form.append("contactReviewed", "true");
         const r = await fetch("/api/admin/workers/" + saved + "/resume", {
           method: "POST",
           body: form,
@@ -406,13 +413,17 @@ export function AdminDirectory() {
               type="file"
               required={!id}
               accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
-              onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+              onChange={(e) => { setFile(e.target.files?.[0] ?? null); setContactReviewed(false); }}
             />
             <small>
               PDF, Word or image · up to 4 MB. Existing resume is kept unless
               replaced.
             </small>
           </label>
+          {file && <label className="bw-check">
+            <input type="checkbox" required checked={contactReviewed} onChange={(e) => setContactReviewed(e.target.checked)} />
+            I reviewed this resume and removed phone numbers, email addresses and other contact details.
+          </label>}
           <button className="bw-button" disabled={busy}>
             {busy ? "Saving profile and resume…" : "Save profile & resume"}
           </button>
@@ -430,7 +441,7 @@ export function AdminDirectory() {
               </p>
               <p>
                 {w.resumeFileName
-                  ? "Resume: " + w.resumeFileName
+                  ? "Resume: " + w.resumeFileName + (w.resumeContactReviewed ? " · Contact review complete" : " · Review and re-upload before families can access")
                   : "No resume uploaded"}
               </p>
               <p>Private contact: {w.phone}</p>

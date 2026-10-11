@@ -37,6 +37,9 @@ Git integration, if connected later, should deploy only main with the existing e
 Apply the `20261005150000_directory_realtime` migration before deploying the live-update code. It adds one revision row and a transactional PostgreSQL trigger on worker writes; it preserves existing workers and resumes. This shared revision lets every application instance detect changes made through either admin API. No external messaging service or additional credentials are needed.
 
 The web directory and profile pages subscribe to `/api/workers/events`. The Node.js streaming route checks the revision every two seconds, sends only revision numbers, and closes after 50 seconds so browsers reconnect within the route's 60-second execution allowance. Keep this endpoint uncached and unbuffered through any proxy. Hidden tabs close their connections and reconnect when visible. Verify the streaming behavior on the candidate deployment before promotion. Each visible page uses a long-lived request and one small database read every two seconds; large audiences should use a shared messaging service instead of increasing database polling load.
+## Interview pilot
+
+See INTERVIEWS.md for family/admin flows and infra/livekit/README.md for the India VM setup. The LiveKit replacement needs no database migration. The earlier interview and resume contact-review migrations are additive; take and verify an encrypted backup before applying those. Existing resume bytes remain stored, but staff must review/remove contact details and re-upload before family downloads resume. Existing unlocks retain their included interview. Scheduling works while LiveKit settings are absent; real calls require the VM, DNS, server-only settings and a new website deployment.
 
 ## Mobile
 

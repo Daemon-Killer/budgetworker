@@ -133,4 +133,5 @@ export const publicWorkerSelect = {
   status: true,
   resumeFileName: true,
   resumeSize: true,
+  resumeContactReviewed: true,
 } satisfies Prisma.WorkerSelect;

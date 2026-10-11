@@ -44,6 +44,11 @@ export default async function AccountPage() {
       </div>
 
       <Link href="/bookings" className="bw-button secondary">My service bookings →</Link>
+      <section className="rounded-xl border border-teal-200 bg-teal-50 p-5">
+        <h2 className="font-semibold text-teal-950">Meet your shortlisted workers</h2>
+        <p className="mt-2 text-sm leading-relaxed text-teal-900">Each unlocked resume includes one completed interview. Our team coordinates availability so you can discuss duties, timings and pay privately.</p>
+        <Link href="/account/interviews" className="mt-3 inline-flex min-h-11 items-center rounded-lg bg-teal-700 px-4 text-sm font-semibold text-white">My interviews</Link>
+      </section>
 
       <section>
         <h2 className="font-semibold">Unlocked resumes</h2>
@@ -71,10 +76,11 @@ export default async function AccountPage() {
                   <p className="text-xs text-slate-500">
                     {categoryLabel(u.worker.category)} ·{" "}
                     {new Date(u.createdAt).toLocaleDateString()}
-                    {u.worker.resumeFileName ? ` · ${u.worker.resumeFileName}` : ""}
                   </p>
                 </div>
-                {u.worker.resumeFileName ? (
+                <div className="flex flex-wrap gap-2">
+                  <Link href={"/interviews/request?worker=" + encodeURIComponent(u.worker.id)} className="inline-flex min-h-11 items-center rounded-lg border border-teal-200 px-3 py-1.5 text-sm font-medium text-teal-800">Request interview</Link>
+                {u.worker.resumeContactReviewed && u.worker.resumeFileName ? (
                   <a
                     href={`/api/workers/${u.worker.id}/resume`}
                     className="rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700"
@@ -82,8 +88,9 @@ export default async function AccountPage() {
                     Download resume
                   </a>
                 ) : (
-                  <span className="text-xs text-slate-400">No file</span>
+                  <span className="text-xs text-slate-500">{u.worker.resumeFileName ? "Resume under review" : "Resume not available"}</span>
                 )}
+                </div>
               </li>
             ))}
           </ul>

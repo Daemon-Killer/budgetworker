@@ -18,7 +18,8 @@
     "dev:preview": "node tests/run-marketplace.mjs --preview",
     "test:directory": "node tests/run-marketplace.mjs --directory",
     "test:otp": "node tests/run-otp.mjs",
-    "test:realtime": "node tests/run-marketplace.mjs --realtime"
+    "test:realtime": "node tests/run-marketplace.mjs --realtime",
+    "test:interviews": "node tests/run-marketplace.mjs --interviews"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
@@ -27,6 +28,8 @@
     "@prisma/client": "^5.22.0",
     "dotenv": "^17.4.2",
     "jose": "^6.2.7",
+    "livekit-client": "2.22.4",
+    "livekit-server-sdk": "2.19.1",
     "nanoid": "^6.0.0",
     "next": "^16.3.8",
     "razorpay": "^2.9.8",

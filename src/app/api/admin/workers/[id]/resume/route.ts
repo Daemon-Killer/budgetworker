@@ -23,6 +23,9 @@ export async function POST(
     const { id } = await ctx.params;
 
     const form = await req.formData();
+    if (form.get("contactReviewed") !== "true") {
+      return jsonError(Object.assign(new Error("Review the resume and remove contact details before uploading"), { status: 400 }));
+    }
     const file = form.get("file");
     if (!file || !(file instanceof File)) {
       return jsonError(
@@ -54,6 +57,7 @@ export async function POST(
         resumeMimeType: mime,
         resumeSize: buf.length,
         resumeData: buf,
+        resumeContactReviewed: true,
       },
       select: {
         id: true,
@@ -61,6 +65,7 @@ export async function POST(
         resumeFileName: true,
         resumeMimeType: true,
         resumeSize: true,
+        resumeContactReviewed: true,
       },
     });
 
@@ -84,6 +89,7 @@ export async function DELETE(
         resumeMimeType: null,
         resumeSize: null,
         resumeData: null,
+        resumeContactReviewed: false,
       },
     });
     return jsonOk({ ok: true });

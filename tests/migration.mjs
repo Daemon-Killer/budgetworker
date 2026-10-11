@@ -17,4 +17,9 @@ await db.exec(fs.readFileSync(root+'/20261004193000_legacy_pay_units/migration.s
 const legacy=(await db.query(`SELECT "expectedPayInr","salaryExpectation" FROM "Worker" WHERE id LIKE 'legacy-%' ORDER BY id`)).rows;
 assert.deepEqual(legacy.map(w=>w.expectedPayInr),[null,null]);assert.deepEqual(legacy.map(w=>w.salaryExpectation),['16k','800/visit']);
 assert.equal((await db.query(`SELECT "expectedPayInr" FROM "Worker" WHERE id='old-worker'`)).rows[0].expectedPayInr,8000);
-await db.close();console.log('PASS: both additive migrations preserve customers and resumes, backfill structured pay, and disable job posting.');
+await db.exec(fs.readFileSync(root+'/20261011000100_resume_contact_review/migration.sql','utf8'));
+await db.exec(fs.readFileSync(root+'/20261011120000_interviews/migration.sql','utf8'));
+const retained=(await db.query(`SELECT "resumeContactReviewed","resumeFileName",encode("resumeData",'hex') AS bytes FROM "Worker" WHERE id='old-worker'`)).rows[0];
+assert.equal(retained.resumeContactReviewed,false);assert.equal(retained.resumeFileName,'old-resume.pdf');assert.equal(retained.bytes,'255044462d');
+for(const table of ['Interview','InterviewBrowserTicket'])assert.equal((await db.query('SELECT COUNT(*)::int AS n FROM "'+table+'"')).rows[0].n,0);
+await db.close();console.log('PASS: additive migrations preserve customers and resume bytes, hold existing files for contact review, and create empty interview/ticket tables.');

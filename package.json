@@ -17,12 +17,14 @@
     "test:migration": "node tests/migration.mjs",
     "dev:preview": "node tests/run-marketplace.mjs --preview",
     "test:directory": "node tests/run-marketplace.mjs --directory",
-    "test:otp": "node tests/run-otp.mjs"
+    "test:otp": "node tests/run-otp.mjs",
+    "test:interviews": "node tests/run-marketplace.mjs --interviews"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
+    "@daily-co/daily-js": "^0.93.0",
     "@prisma/client": "^5.22.0",
     "dotenv": "^17.4.2",
     "jose": "^6.2.7",

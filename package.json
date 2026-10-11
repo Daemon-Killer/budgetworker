@@ -17,7 +17,8 @@
     "test:migration": "node tests/migration.mjs",
     "dev:preview": "node tests/run-marketplace.mjs --preview",
     "test:directory": "node tests/run-marketplace.mjs --directory",
-    "test:otp": "node tests/run-otp.mjs"
+    "test:otp": "node tests/run-otp.mjs",
+    "test:realtime": "node tests/run-marketplace.mjs --realtime"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
@@ -42,6 +43,7 @@
     "eslint": "^9",
     "eslint-config-next": "^16.3.8",
     "pg-gateway": "^0.3.0-beta.4",
+    "playwright": "^1.63.0",
     "prisma": "^5.22.0",
     "tailwindcss": "^4",
     "tsx": "^4.23.4",

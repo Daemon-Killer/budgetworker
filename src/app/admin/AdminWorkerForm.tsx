@@ -2,7 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { WORKER_CATEGORIES, EMPLOYMENT_TYPES, categoryLabel, employmentLabel } from "@/lib/constants";
+import { EMPLOYMENT_TYPES, categoryLabel, employmentLabel } from "@/lib/constants";
+import { CATEGORIES } from "../../../shared/marketplace";
 
 export function AdminWorkerForm() {
   const router = useRouter();
@@ -54,8 +55,8 @@ export function AdminWorkerForm() {
     <form onSubmit={onSubmit} className="mt-4 grid gap-3 sm:grid-cols-2">
       <input name="name" required placeholder="Name" className="rounded-lg border px-3 py-2 text-sm" />
       <input name="phone" required placeholder="Phone" className="rounded-lg border px-3 py-2 text-sm" />
-      <select name="category" className="rounded-lg border px-3 py-2 text-sm" defaultValue="COOK">
-        {WORKER_CATEGORIES.map((c) => (
+      <select name="category" className="rounded-lg border px-3 py-2 text-sm" defaultValue={CATEGORIES[0]}>
+        {CATEGORIES.map((c) => (
           <option key={c} value={c}>
             {categoryLabel(c)}
           </option>

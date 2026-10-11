@@ -32,6 +32,12 @@ Deploy a candidate with vercel deploy --prod --skip-domain, verify its website a
 
 Git integration, if connected later, should deploy only main with the existing environment configuration and backup process.
 
+## Live worker updates
+
+Apply the `20261005150000_directory_realtime` migration before deploying the live-update code. It adds one revision row and a transactional PostgreSQL trigger on worker writes; it preserves existing workers and resumes. This shared revision lets every application instance detect changes made through either admin API. No external messaging service or additional credentials are needed.
+
+The web directory and profile pages subscribe to `/api/workers/events`. The Node.js streaming route checks the revision every two seconds, sends only revision numbers, and closes after 50 seconds so browsers reconnect within the route's 60-second execution allowance. Keep this endpoint uncached and unbuffered through any proxy. Hidden tabs close their connections and reconnect when visible. Verify the streaming behavior on the candidate deployment before promotion. Each visible page uses a long-lived request and one small database read every two seconds; large audiences should use a shared messaging service instead of increasing database polling load.
+
 ## Mobile
 
 Check out app, then install and build in mobile/. Set EXPO_PUBLIC_API_URL to https://budgetworker.in for a hosted build, or the local backend's LAN URL for development. Apply compatible backend migrations before distributing the app. See mobile/README.md for native configuration and acceptance checks. Review APKs use test signing; app-store releases require production signing and developer accounts.

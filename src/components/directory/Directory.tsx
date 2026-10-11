@@ -2,6 +2,7 @@
 import { useState, useCallback, useRef } from "react";
 import Link from "next/link";
 import { CATEGORIES, LABELS } from "../../../shared/marketplace";
+import { employmentLabel } from "@/lib/constants";
 import {
   directoryQuery,
   periodLabels,
@@ -10,6 +11,7 @@ import {
   type ResumePack,
 } from "../../../shared/directory";
 import { ResumeAccess } from "./ResumeAccess";
+import { useLiveWorkers } from "./useLiveWorkers";
 export function Directory({
   initial,
   initialFilters,
@@ -30,6 +32,7 @@ export function Directory({
     [error, setError] = useState(""),
     [locationBusy, setLocationBusy] = useState(false);
   const requestNumber = useRef(0);
+  const searching = useRef(false);
   const field = (key: keyof DirectoryFilters, value: string) =>
     setFilters((f) => ({
       ...f,
@@ -38,10 +41,11 @@ export function Directory({
     }));
   const search = useCallback(async (f: DirectoryFilters, page = 1) => {
     const n = ++requestNumber.current;
+    searching.current = true;
     setBusy(true);
     setError("");
     try {
-      const r = await fetch("/api/workers?" + directoryQuery(f, page));
+      const r = await fetch("/api/workers?" + directoryQuery(f, page), { cache: "no-store" });
       const d = await r.json();
       if (!r.ok) throw Error(d.error ?? "Unable to load profiles");
       if (n === requestNumber.current) {
@@ -53,9 +57,31 @@ export function Directory({
       if (n === requestNumber.current)
         setError(e instanceof Error ? e.message : "Unable to load profiles");
     } finally {
-      if (n === requestNumber.current) setBusy(false);
+      if (n === requestNumber.current) {
+        searching.current = false;
+        setBusy(false);
+      }
     }
   }, []);
+  const refresh = useCallback(async (signal: AbortSignal) => {
+    // A background event must not overtake a user-initiated search.
+    if (searching.current) throw Error("Search is in progress");
+    const n = requestNumber.current;
+    async function load(page: number): Promise<DirectoryResult> {
+      const r = await fetch("/api/workers?" + directoryQuery(appliedFilters, page), { cache: "no-store", signal });
+      if (!r.ok) throw Error("Unable to refresh profiles");
+      return r.json();
+    }
+    let next = await load(result.page);
+    const lastPage = Math.max(1, Math.ceil(next.total / next.pageSize));
+    if (next.page > lastPage) next = await load(lastPage);
+    if (!signal.aborted && n === requestNumber.current) {
+      setResult(next);
+      if (next.page !== result.page)
+        window.history.replaceState(null, "", "?" + directoryQuery(appliedFilters, next.page));
+    }
+  }, [appliedFilters, result.page]);
+  useLiveWorkers(refresh);
   function locate() {
     setError("");
     if (!navigator.geolocation) {
@@ -183,6 +209,7 @@ export function Directory({
               <option value="">Any arrangement</option>
               <option value="PART_TIME">Part time</option>
               <option value="FULL_TIME">Full time</option>
+              <option value="LIVE_IN">24 hours Live-in</option>
             </select>
           </label>
           <label className="bw-field">
@@ -294,9 +321,7 @@ export function Directory({
                       </h3>
                       <p>
                         {LABELS[w.category]} ·{" "}
-                        {w.employmentType === "PART_TIME"
-                          ? "Part time"
-                          : "Full time"}
+                        {employmentLabel(w.employmentType)}
                       </p>
                     </div>
                     <span className="bw-tag">Available</span>
@@ -342,7 +367,7 @@ export function Directory({
                     packs={packs}
                     loggedIn={loggedIn}
                     balance={balance}
-                    onUnlock={() => void search(filters, result.page)}
+                    onUnlock={() => void search(appliedFilters, result.page)}
                   />
                   <p>1 credit · full resume</p>
                   <Link href={"/workers/" + w.id}>All profile details →</Link>

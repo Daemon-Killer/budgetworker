@@ -1,0 +1,7 @@
+@media(max-width:760px) {
+  .navigation:global(.bw-mobile-nav) { grid-template-columns:minmax(0,.8fr) minmax(0,.9fr) minmax(0,1.5fr) minmax(0,1.8fr) minmax(0,.9fr); }
+  .navigation:global(.bw-mobile-nav) > a { font-size:11px; }
+  .navigation:global(.bw-mobile-nav) > div > button { flex-direction:column; gap:0; font-size:11px; }
+  .navigation:global(.bw-mobile-nav) > div > button svg { width:10px; height:10px; }
+}
+@media(max-width:360px) { .navigation:global(.bw-mobile-nav) > a, .navigation:global(.bw-mobile-nav) > div > button { font-size:10px; } }

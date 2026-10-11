@@ -25,9 +25,9 @@ export function PackPurchase({
     return (
       <Link
         href="/login?next=/packs"
-        className="block rounded-full bg-gradient-to-r from-blue-600 to-pink-600 py-2.5 text-center text-sm font-semibold text-white"
+        className="block rounded-full bg-gradient-to-r from-blue-700 to-blue-600 py-2.5 text-center text-sm font-semibold text-white"
       >
-        Log in to buy
+        Log in to book
       </Link>
     );
   }
@@ -124,9 +124,9 @@ export function PackPurchase({
         type="button"
         disabled={loading}
         onClick={buy}
-        className="w-full rounded-full bg-gradient-to-r from-blue-600 to-pink-600 py-2.5 text-sm font-semibold text-white hover:opacity-95 disabled:opacity-50"
+        className="w-full rounded-full bg-gradient-to-r from-blue-700 to-blue-600 py-2.5 text-sm font-semibold text-white hover:opacity-95 disabled:opacity-50"
       >
-        {loading ? "Opening payment…" : "Pay with Razorpay"}
+        {loading ? "Opening payment…" : "Book this plan"}
       </button>
       {testMode && (
         <p className="text-center text-[10px] leading-relaxed text-slate-400">

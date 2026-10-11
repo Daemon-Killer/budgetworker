@@ -17,4 +17,16 @@ await db.exec(fs.readFileSync(root+'/20261004193000_legacy_pay_units/migration.s
 const legacy=(await db.query(`SELECT "expectedPayInr","salaryExpectation" FROM "Worker" WHERE id LIKE 'legacy-%' ORDER BY id`)).rows;
 assert.deepEqual(legacy.map(w=>w.expectedPayInr),[null,null]);assert.deepEqual(legacy.map(w=>w.salaryExpectation),['16k','800/visit']);
 assert.equal((await db.query(`SELECT "expectedPayInr" FROM "Worker" WHERE id='old-worker'`)).rows[0].expectedPayInr,8000);
-await db.close();console.log('PASS: both additive migrations preserve customers and resumes, backfill structured pay, and disable job posting.');
+await db.exec(fs.readFileSync(root+'/20261005150000_directory_realtime/migration.sql','utf8'));
+async function revision(){return BigInt((await db.query('SELECT version FROM "DirectoryRevision" WHERE id=1')).rows[0].version);}
+assert.equal(await revision(),0n);
+await db.exec(`UPDATE "Worker" SET skill='Edited skill' WHERE id='old-worker'`);
+assert.equal(await revision(),1n);
+await db.exec(`BEGIN; UPDATE "Worker" SET status='INACTIVE' WHERE id='old-worker'; ROLLBACK;`);
+assert.equal(await revision(),1n,'rolled-back worker changes must not notify clients');
+await db.exec(`DELETE FROM "Worker" WHERE id='legacy-k'`);
+assert.equal(await revision(),2n);
+await db.exec(`INSERT INTO "Worker" (id,name,phone,category,city,"updatedAt") VALUES ('live-worker','Live worker','9000000099','COOK','Pune',NOW())`);
+assert.equal(await revision(),3n);
+assert.equal((await db.query(`SELECT encode("resumeData",'hex') AS bytes FROM "Worker" WHERE id='old-worker'`)).rows[0].bytes,'255044462d');
+await db.close();console.log('PASS: additive migrations preserve customers and resumes; directory revisions track committed inserts, edits and deletions without notifying rolled-back changes.');

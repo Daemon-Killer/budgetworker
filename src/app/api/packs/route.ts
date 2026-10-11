@@ -1,12 +1,9 @@
 import {withCors} from '@/lib/cors';
-import { prisma } from "@/lib/db";
+import { RESUME_PLANS } from "@/lib/resume-plans";
 import { jsonOk } from "@/lib/api";
 
 async function list() {
-  const packs = await prisma.pack.findMany({
-    where: { active: true },
-    orderBy: { sortOrder: "asc" },
-  });
+  const packs = RESUME_PLANS;
   return jsonOk({ packs });
 }
 

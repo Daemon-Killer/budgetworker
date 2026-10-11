@@ -1,4 +1,5 @@
 import { prisma } from "./db";
+import { RESUME_PLANS } from "./resume-plans";
 import { CreditError } from "./credits";
 import {
   getPaymentMode,
@@ -14,8 +15,13 @@ import {
  * - razorpay: PENDING + Razorpay order for Checkout (test or live keys)
  */
 export async function purchasePack(userId: string, packId: string) {
-  const pack = await prisma.pack.findFirst({
-    where: { id: packId, active: true },
+  const selected = RESUME_PLANS.find((plan) => plan.id === packId);
+  if (!selected) throw new CreditError("Plan not found", 404);
+  const catalogPack = { id: selected.id, name: selected.name, priceInr: selected.priceInr, credits: selected.credits, active: selected.active, sortOrder: selected.sortOrder };
+  const pack = await prisma.pack.upsert({
+    where: { id: packId },
+    create: catalogPack,
+    update: catalogPack,
   });
   if (!pack) {
     throw new CreditError("Pack not found", 404);
@@ -34,44 +40,33 @@ export async function purchasePack(userId: string, packId: string) {
     },
   });
 
-  if (mode === "mock") {
-    return fulfillOrder(order.id, `mock_${order.id}`);
-  }
+  return checkoutOrder(order.id);
+}
 
-  const rzp = getRazorpayClient();
-  const rzpOrder = await rzp.orders.create({
-    amount: inrToPaise(pack.priceInr),
-    currency: "INR",
-    receipt: order.id.slice(0, 40),
-    notes: {
-      appOrderId: order.id,
-      userId,
-      packId: pack.id,
-      credits: String(pack.credits),
-    },
-  });
-
-  await prisma.order.update({
-    where: { id: order.id },
-    data: { providerRef: rzpOrder.id },
-  });
-
-  const user = await prisma.user.findUnique({ where: { id: userId } });
-
+/** Reuse the same provider order when a customer retries checkout. */
+export async function checkoutOrder(orderId: string) {
+  const initial = await prisma.order.findUniqueOrThrow({ where: { id: orderId } });
+  if (initial.status === "PAID") return { orderId, status: "PAID" as const, credits: initial.credits, amountInr: initial.amountInr, alreadyPaid: true };
+  if (initial.provider === "mock") return fulfillOrder(orderId, `mock_${orderId}`);
+  const order = await prisma.$transaction(async tx => {
+    await tx.$queryRaw`SELECT id FROM "Order" WHERE id=${orderId} FOR UPDATE`;
+    const current = await tx.order.findUniqueOrThrow({ where: { id: orderId }, include: { pack: true, user: true } });
+    if (current.status !== "PAID" && !current.providerRef) {
+      const providerOrder = await getRazorpayClient().orders.create({
+        amount: inrToPaise(current.amountInr), currency: "INR", receipt: current.id.slice(0, 40),
+        notes: { appOrderId: current.id, userId: current.userId, packId: current.packId, credits: String(current.credits) },
+      });
+      return tx.order.update({ where: { id: current.id }, data: { providerRef: providerOrder.id }, include: { pack: true, user: true } });
+    }
+    return current;
+  }, { timeout: 20000 });
+  if (order.status === "PAID") return { orderId, status: "PAID" as const, credits: order.credits, amountInr: order.amountInr, alreadyPaid: true };
   return {
-    orderId: order.id,
-    status: "PENDING" as const,
-    mode: "razorpay" as const,
-    razorpayOrderId: rzpOrder.id,
-    amountInr: pack.priceInr,
-    amountPaise: inrToPaise(pack.priceInr),
-    credits: pack.credits,
-    packName: pack.name,
-    keyId: getRazorpayKeyId(),
-    prefill: {
-      contact: user?.phone ?? "",
-      name: user?.name ?? "",
-    },
+    orderId: order.id, status: "PENDING" as const, mode: "razorpay" as const,
+    razorpayOrderId: order.providerRef, amountInr: order.amountInr,
+    amountPaise: inrToPaise(order.amountInr), credits: order.credits,
+    packName: order.pack.name, keyId: getRazorpayKeyId(),
+    prefill: { contact: order.user.phone, name: order.user.name ?? "" },
   };
 }
 
@@ -93,7 +88,8 @@ export async function fulfillOrder(orderId: string, providerRef: string) {
       where: { id: orderId },
       data: { status: "PAID", providerRef },
     });
-    await tx.creditLedger.create({
+    await tx.serviceBooking.updateMany({ where: { orderId: order.id }, data: { status: "PAID" } });
+    if (order.credits > 0) await tx.creditLedger.create({
       data: {
         userId: order.userId,
         delta: order.credits,

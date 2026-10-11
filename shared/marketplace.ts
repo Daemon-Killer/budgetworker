@@ -1,18 +1,16 @@
 export const CATEGORIES = [
-  "COOK",
   "HOUSEKEEPING",
   "ALLROUNDER",
   "BABYCARE",
   "JAPA",
-  "ELDERCARE",
   "CHEF",
 ] as const;
 export const LABELS: Record<string, string> = {
   COOK: "Cooking",
-  HOUSEKEEPING: "Housekeeping",
+  HOUSEKEEPING: "Domestic Help",
   ALLROUNDER: "All-round home help",
-  BABYCARE: "Childcare",
-  JAPA: "Newborn & mother care",
+  BABYCARE: "Babycare",
+  JAPA: "Newborn & mother care (Japa Care)",
   ELDERCARE: "Eldercare",
   CHEF: "Specialty chef",
 };

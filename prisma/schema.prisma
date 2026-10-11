@@ -9,6 +9,12 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// One database-owned revision shared by all website instances.
+model DirectoryRevision {
+  id      Int    @id @default(1)
+  version BigInt @default(0)
+}
+
 model User {
   id        String   @id @default(cuid())
   phone     String   @unique
@@ -24,6 +30,7 @@ model User {
   reviews Review[] @relation("ReviewAuthor")
   auditEntries AuditEntry[]
 
+  serviceBookings ServiceBooking[]
   orders   Order[]
   ledger   CreditLedger[]
   unlocks  Unlock[]
@@ -83,6 +90,7 @@ model Order {
   user   User           @relation(fields: [userId], references: [id])
   pack   Pack           @relation(fields: [packId], references: [id])
   ledger CreditLedger[]
+  serviceBooking ServiceBooking?
 
   @@index([userId])
 }
@@ -248,4 +256,40 @@ model AuditEntry {
   details String
   createdAt DateTime @default(now())
   @@index([createdAt])
+}
+
+model ServiceBooking {
+  id String @id @default(cuid())
+  requestId String @unique
+  userId String
+  user User @relation(fields: [userId], references: [id])
+  serviceSlug String
+  serviceTitle String
+  planId String
+  months Int
+  priceInr Int
+  replacements Int
+  testMode Boolean @default(false)
+  answers Json
+  status String @default("PENDING")
+  orderId String @unique
+  order Order @relation(fields: [orderId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([userId, createdAt])
+}
+
+model WorkerLead {
+  id String @id @default(cuid())
+  requestId String @unique
+  kind String
+  name String
+  phone String
+  city String
+  area String
+  details Json
+  status String @default("NEW")
+  createdAt DateTime @default(now())
+  @@index([createdAt])
+  @@index([phone, createdAt])
 }

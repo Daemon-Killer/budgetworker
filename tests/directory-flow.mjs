@@ -1,13 +1,14 @@
 import assert from 'node:assert/strict';
+import { testWorkerEvents } from './worker-events.mjs';
 const base=process.env.TEST_BASE_URL+'/api/';let checks=0;
 async function api(p,{token,method='GET',body,status=200}={}){const r=await fetch(base+p,{method,headers:{...(token?{Authorization:'Bearer '+token}:{}),...(body?{'Content-Type':'application/json'}:{})},...(body?{body:JSON.stringify(body)}:{})});const d=await r.json();assert.equal(r.status,status,p+' '+JSON.stringify(d));checks++;return d;}
 async function login(phone){await api('mobile/auth/request',{method:'POST',body:{phone}});return (await api('mobile/auth/verify',{method:'POST',body:{phone,code:'123456'}})).token;}
 const admin=await login('9999999999'),client=await login('9876543210');
-const body={name:'Directory test cook',phone:'9000000011',category:'COOK',employmentType:'PART_TIME',city:'Pune',area:'Baner',skill:'Vegetarian cooking',about:'Six years of home cooking experience.',expectedPayInr:8000,payPeriod:'MONTH',hoursPerDay:2,experienceYears:6,latitude:18.559,longitude:73.786,status:'INACTIVE',policeVerified:true};
+const body={name:'Directory test cook',phone:'9000000011',category:'HOUSEKEEPING',employmentType:'PART_TIME',city:'Pune',area:'Baner',skill:'Vegetarian cooking',about:'Six years of home cooking experience.',expectedPayInr:8000,payPeriod:'MONTH',hoursPerDay:2,experienceYears:6,latitude:18.559,longitude:73.786,status:'INACTIVE',policeVerified:true};
 await api('mobile/admin/workers',{token:client,method:'POST',body,status:403});await api('mobile/admin/workers',{token:admin,method:'POST',body:{...body,expectedPayInr:-1},status:400});await api('mobile/admin/workers',{token:admin,method:'POST',body:{...body,latitude:100},status:400});
 async function add(extra={}){const w=(await api('mobile/admin/workers',{token:admin,method:'POST',body:{...body,...extra},status:201})).worker;const form=new FormData();form.append('file',new Blob(['%PDF-1.4\nDirectory fixture resume'],{type:'application/pdf'}),'private-9000000011.pdf');const r=await fetch(base+'mobile/admin/workers/'+w.id+'/resume',{method:'POST',headers:{Authorization:'Bearer '+admin},body:form});assert.equal(r.status,200);checks++;await api('mobile/admin/workers/'+w.id,{token:admin,method:'PATCH',body:{status:'AVAILABLE'}});return w;}
 const a=await add(),b=await add({name:'Directory second cook',phone:'9000000012',expectedPayInr:9000,hoursPerDay:4}),c=await add({name:'Directory third cook',phone:'9000000013',expectedPayInr:10000,hoursPerDay:6}),far=await add({name:'Directory Mumbai cook',phone:'9000000014',city:'Mumbai',area:'Andheri',latitude:19.11,longitude:72.86});
-const rows=await api('workers?q=Directory%20test&city=pune&area=baner&category=COOK&employmentType=PART_TIME&maxPay=8500&payPeriod=MONTH&maxHours=2');assert.equal(rows.total,1);assert.equal(rows.workers[0].id,a.id);checks++;
+const rows=await api('workers?q=Directory%20test&city=pune&area=baner&category=HOUSEKEEPING&employmentType=PART_TIME&maxPay=8500&payPeriod=MONTH&maxHours=2');assert.equal(rows.total,1);assert.equal(rows.workers[0].id,a.id);checks++;
 for(const key of ['phone','resumeData','latitude','longitude','internalNotes','resumeFileName'])assert.ok(rows.workers[0][key]==null,'Private '+key+' is hidden');checks++;
 const nearby=await api('workers?lat=18.559&lng=73.786&radius=5');assert.ok(nearby.workers.some(w=>w.id===a.id));assert.ok(!nearby.workers.some(w=>w.id===far.id));assert.ok(nearby.workers.every(w=>w.distanceKm<=5));checks++;
 await api('workers?lat=18',{status:400});await api('workers?maxPay=NaN',{status:400});await api('workers?category=invalid',{status:400});await api('workers?page=1.5',{status:400});
@@ -26,3 +27,37 @@ const reused=await fetch(process.env.TEST_BASE_URL+handoffPath,{redirect:'manual
 await api('mobile/admin/workers/'+c.id,{token:admin,method:'PATCH',body:{status:'INACTIVE'}});assert.ok(!(await api('workers?city=Pune')).workers.some(w=>w.id===c.id));await api('mobile/directory/'+c.id,{token:client,status:404});checks++;
 await api('mobile/admin/workers/'+a.id,{token:admin,method:'PATCH',body:{expectedPayInr:7500,hoursPerDay:1.5}});const updated=(await api('mobile/directory/'+a.id,{token:client})).worker;assert.equal(updated.expectedPayInr,7500);assert.equal(updated.hoursPerDay,1.5);checks++;
 console.log('PASS: '+checks+' directory checks covering filters, radius, admin publication/upload/edit, private data, paywall, purchases, native resume access, concurrent credits and one-use checkout handoff.');
+await testWorkerEvents({ base, admin, client, workerId: a.id });
+// Withdrawn services stay in admin history but cannot be browsed or newly purchased.
+for (const [category, phone] of [['COOK', '9000000081'], ['ELDERCARE', '9000000082']]) {
+  const retired = await add({name: 'Retired service fixture', category, phone});
+  const visible = await api('workers?q=Retired%20service%20fixture');
+  assert.ok(!visible.workers.some(w => w.id === retired.id));checks++;
+  await api('workers?category=' + category, {status: 400});
+  await api('workers/' + retired.id, {status: 404});
+  await api('mobile/directory/' + retired.id, {token: client, status: 404});
+  await api('mobile/directory/' + retired.id + '/unlock', {token: client, method: 'POST', body: {}, status: 404});
+  const archived = await api('mobile/admin/workers', {token: admin});
+  assert.ok(archived.workers.some(w => w.id === retired.id));checks++;
+}
+await api('mobile/admin/workers/' + a.id, {token: admin, method: 'PATCH', body: {category: 'COOK'}});
+await api('mobile/directory/' + a.id, {token: client, status: 404});
+await api('mobile/directory/' + a.id + '/unlock', {token: client, method: 'POST', body: {}});
+const purchasedResume = await fetch(base + 'mobile/directory/' + a.id + '/resume', {headers: {Authorization: 'Bearer ' + client}});
+assert.equal(purchasedResume.status, 200);
+assert.equal((await api('auth/me', {token: client})).balance, 0);
+console.log('PASS: retired Cooking and Eldercare are hidden from search and detail, new unlocks are blocked, and admin history and purchased resumes remain accessible.');
+const fullTime = await add({name: 'Full-time service fixture', phone: '9000000070', employmentType: 'FULL_TIME'});
+for (const [index, category] of ['HOUSEKEEPING', 'ALLROUNDER', 'BABYCARE', 'JAPA'].entries()) {
+  const liveIn = await add({name: 'Live-in service fixture', phone: '900000007' + (index + 1), category, employmentType: 'LIVE_IN', hoursPerDay: 8});
+  const selected = await api('workers?category=' + category + '&employmentType=LIVE_IN&city=Pune');
+  assert.deepEqual(selected.workers.map(w => w.id), [liveIn.id]);
+  assert.ok(selected.workers.every(w => w.employmentType === 'LIVE_IN'));
+  assert.ok(!selected.workers.some(w => w.id === fullTime.id));
+  const detail = await api('mobile/directory/' + liveIn.id, {token: client});
+  assert.equal(detail.worker.employmentType, 'LIVE_IN');
+  await api('mobile/admin/workers/' + liveIn.id, {token: admin, method: 'PATCH', body: {employmentType: 'FULL_TIME'}});
+  assert.equal((await api('workers?category=' + category + '&employmentType=LIVE_IN')).total, 0);
+  assert.ok((await api('workers?category=' + category + '&employmentType=FULL_TIME')).workers.some(w => w.id === liveIn.id));
+}
+console.log('PASS: all four live-in services can be published, searched independently of full-time workers, and edited back to full-time.');

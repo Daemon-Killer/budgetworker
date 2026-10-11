@@ -25,6 +25,10 @@ Run `npm install`, then `npm run dev:preview`. It starts an isolated, temporary 
 
 Run `npm run lint`, `npx tsc --noEmit`, `npm run test:migration`, `npm run test:directory` and `npm run build`. The directory integration suite covers location/filter searches, role enforcement, worker/resume management, paywalls, concurrent credit deductions, authenticated downloads and one-use mobile checkout handoff. Payment callback tests cover concurrent fulfillment and invalid callbacks. Stop Prisma-backed previews before regenerating Prisma on Windows if its DLL is locked.
 
+Worker directories and open worker profiles update automatically after admin changes, normally within about two seconds. Updates preserve submitted filters, pending filter edits and the current page; an emptied final page returns to the last valid page. Hidden tabs pause the connection and reconcile on return. Hidden workers disappear from searches and open profiles; republishing restores them. The server-sent event stream carries only a database revision, and profile data still comes from the existing public APIs.
+
+Run `npx playwright install chromium` once, then `npm run test:realtime` for isolated browser tests of publication, live edits, hiding/republishing, filters, pagination and reconnects. To use an installed Chromium instead, set `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH` to its executable path. Stop local previews before running this suite; it starts its own temporary database and website.
+
 On the `app` branch, inside `mobile/`, run `npm run lint`, `npm run typecheck` and `npx expo export --platform all`. Native device acceptance and store signing are separate release steps.
 
 ## Architecture and rollout

@@ -1,0 +1,54 @@
+[
+  {
+    "slug": "domestic-help",
+    "category": "HOUSEKEEPING",
+    "title": "Domestic Help",
+    "tasks": [
+      { "label": "Sweeping & mopping", "detail": "Everyday floor cleaning", "icon": "mop" },
+      { "label": "Dusting & wiping", "detail": "Furniture and household surfaces", "icon": "dust" },
+      { "label": "Washing dishes", "detail": "Utensils and kitchen clean-up", "icon": "dishes" },
+      { "label": "Laundry & folding", "detail": "Washing, drying and organising clothes", "icon": "laundry" },
+      { "label": "Kitchen & bathroom cleaning", "detail": "Keeping everyday spaces clean", "icon": "clean" },
+      { "label": "Tidying & organising", "detail": "Putting household items in place", "icon": "tidy" }
+    ]
+  },
+  {
+    "slug": "all-round-home-help",
+    "category": "ALLROUNDER",
+    "title": "All-round home help",
+    "tasks": [
+      { "label": "Meal preparation", "detail": "Chopping and preparing ingredients", "icon": "prep" },
+      { "label": "Everyday cooking", "detail": "Preparing household meals", "icon": "cook" },
+      { "label": "Dishes & kitchen clean-up", "detail": "Cleaning up after meals", "icon": "dishes" },
+      { "label": "Sweeping & mopping", "detail": "Everyday floor cleaning", "icon": "mop" },
+      { "label": "Dusting & tidying", "detail": "Keeping the home organised", "icon": "dust" },
+      { "label": "Laundry & folding", "detail": "Everyday clothing care", "icon": "laundry" }
+    ]
+  },
+  {
+    "slug": "babycare",
+    "category": "BABYCARE",
+    "title": "Babycare",
+    "tasks": [
+      { "label": "Feeding support", "detail": "Following the baby's feeding routine", "icon": "feeding" },
+      { "label": "Diaper changes", "detail": "Keeping the baby clean and comfortable", "icon": "diaper" },
+      { "label": "Bathing & dressing", "detail": "Help with everyday hygiene", "icon": "bath" },
+      { "label": "Playtime & activities", "detail": "Age-appropriate play and interaction", "icon": "play" },
+      { "label": "Nap & bedtime routines", "detail": "Helping maintain a familiar routine", "icon": "sleep" },
+      { "label": "Everyday supervision", "detail": "Attentive care while parents are busy", "icon": "supervision" }
+    ]
+  },
+  {
+    "slug": "japa-care",
+    "category": "JAPA",
+    "title": "Newborn & mother care (Japa Care)",
+    "tasks": [
+      { "label": "Newborn feeding support", "detail": "Feeding routines and burping support", "icon": "feeding" },
+      { "label": "Diaper changes & hygiene", "detail": "Keeping the newborn comfortable", "icon": "diaper" },
+      { "label": "Bathing & dressing", "detail": "Gentle everyday newborn care", "icon": "bath" },
+      { "label": "Baby clothes & essentials", "detail": "Keeping daily supplies ready", "icon": "laundry" },
+      { "label": "Mother's meals & comfort", "detail": "Everyday postnatal household support", "icon": "mother" },
+      { "label": "Rest & sleep routines", "detail": "Support for the mother and newborn", "icon": "sleep" }
+    ]
+  }
+]

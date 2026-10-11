@@ -1,41 +1,52 @@
 .section {
+  min-width: 0;
   scroll-margin-top: 100px;
 }
 
-.heading {
+.carousel {
+  --service-card-width: 265px;
+  --service-gap: 20px;
+}
+
+.viewport:focus-visible {
+  outline: 3px solid var(--bw-blue);
+  outline-offset: 3px;
+}
+
+.viewport {
+  width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  padding: 8px 0 18px;
+  scrollbar-width: thin;
+}
+
+.track {
   display: flex;
-  align-items: end;
-  justify-content: space-between;
-  gap: 24px;
-  margin-bottom: 24px;
+  width: max-content;
 }
 
-.heading h2 {
-  color: var(--bw-ink);
-  font-size: clamp(26px, 3vw, 34px);
-  line-height: 1.2;
-  font-weight: 720;
-  letter-spacing: -1px;
-}
-
-.heading p:not(:first-child) {
-  max-width: 550px;
-  margin-top: 12px;
-  color: var(--bw-muted);
-  font-size: 15px;
-  line-height: 1.7;
-}
-
-.heading > a {
-  flex-shrink: 0;
-}
-
-.grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 20px;
+.group {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: var(--service-gap);
   list-style: none;
-  padding: 0;
+  margin: 0;
+  padding: 0 var(--service-gap) 0 0;
+}
+
+.item {
+  flex: 0 0 var(--service-card-width);
+  width: var(--service-card-width);
+  min-width: 0;
+}
+
+.duplicate {
+  display: none;
+}
+
+.carousel[data-autoplay="true"] .duplicate {
+  display: flex;
 }
 
 .card {
@@ -96,7 +107,7 @@
 
 .copy h3 {
   color: var(--bw-ink);
-  font-size: 21px;
+  font-size: 19px;
   font-weight: 700;
   line-height: 1.25;
 }
@@ -107,24 +118,14 @@
   line-height: 1.65;
 }
 
-.action {
-  margin-top: auto;
-  padding-top: 8px;
-  color: var(--bw-blue);
-  font-size: 13px;
-  font-weight: 700;
+.withoutImage .copy {
+  justify-content: center;
 }
 
 @media (max-width: 760px) {
-  .heading {
-    align-items: start;
-    flex-direction: column;
-    gap: 14px;
-  }
-
-  .grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 14px;
+  .carousel {
+    --service-card-width: min(76vw, 280px);
+    --service-gap: 14px;
   }
 
   .card {
@@ -137,7 +138,7 @@
   }
 
   .copy h3 {
-    font-size: 18px;
+    font-size: 17px;
   }
 
   .copy p {
@@ -151,10 +152,6 @@
     height: 30px;
     font-size: 18px;
   }
-}
-
-@media (max-width: 360px) {
-  .grid { grid-template-columns: 1fr; }
 }
 
 @media (prefers-reduced-motion: reduce) {

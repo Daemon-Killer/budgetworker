@@ -23,7 +23,7 @@ export const WORKER_CATEGORIES = [
 
 export type WorkerCategory = (typeof WORKER_CATEGORIES)[number];
 
-export const EMPLOYMENT_TYPES = ["PART_TIME", "FULL_TIME"] as const;
+export const EMPLOYMENT_TYPES = ["PART_TIME", "FULL_TIME", "LIVE_IN"] as const;
 export type EmploymentType = (typeof EMPLOYMENT_TYPES)[number];
 
 export const WORKER_STATUSES = ["AVAILABLE", "PLACED", "INACTIVE"] as const;
@@ -33,10 +33,10 @@ export const ORDER_STATUSES = ["PENDING", "PAID", "FAILED"] as const;
 
 export const CATEGORY_LABELS: Record<WorkerCategory, string> = {
   COOK: "Cook",
-  HOUSEKEEPING: "Housekeeping",
+  HOUSEKEEPING: "Domestic Help",
   ALLROUNDER: "All-round home help",
-  BABYCARE: "Childcare",
-  JAPA: "Newborn & mother care",
+  BABYCARE: "Babycare",
+  JAPA: "Newborn & mother care (Japa Care)",
   ELDERCARE: "Eldercare",
   CHEF: "Chef",
 };
@@ -44,6 +44,7 @@ export const CATEGORY_LABELS: Record<WorkerCategory, string> = {
 export const EMPLOYMENT_LABELS: Record<EmploymentType, string> = {
   PART_TIME: "Part-time",
   FULL_TIME: "Full-time",
+  LIVE_IN: "24 hours Live-in",
 };
 
 export function categoryLabel(c: string) {

@@ -1,0 +1,135 @@
+.menu {
+  position: relative;
+  min-width: 0;
+}
+
+.trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.trigger svg {
+  flex-shrink: 0;
+}
+
+.expanded {
+  transform: rotate(180deg);
+}
+
+.trigger:hover,
+.trigger[aria-expanded="true"] {
+  color: var(--bw-blue);
+}
+
+.trigger:focus-visible,
+.panel a:focus-visible {
+  outline: 3px solid var(--bw-blue);
+  outline-offset: 2px;
+}
+
+.panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  z-index: 50;
+  width: 360px;
+  max-width: calc(100vw - 32px);
+  max-height: min(640px, calc(100dvh - 120px));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 8px;
+  border: 1px solid var(--bw-line);
+  border-radius: 16px;
+  background: white;
+  box-shadow: 0 14px 40px #17243c24;
+}
+
+.list {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.menu .serviceLink,
+.menu .allServices {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  min-height: 44px;
+  padding: 10px 12px;
+  border-radius: 9px;
+  color: var(--bw-ink);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.45;
+  text-align: left;
+  white-space: normal;
+}
+
+.menu .serviceLink:hover,
+.menu .serviceLink:focus-visible {
+  background: #eaf0ff;
+  color: var(--bw-blue);
+}
+
+.menu .allServices {
+  margin-top: 8px;
+  border-top: 1px solid var(--bw-line);
+  border-radius: 0;
+  color: var(--bw-blue);
+}
+
+.mobile {
+  display: flex;
+}
+
+.mobile .trigger {
+  width: 100%;
+  min-height: 0;
+  padding: 8px 0;
+  gap: 2px;
+  color: var(--bw-muted);
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1.35;
+}
+
+.mobile .trigger.active,
+.mobile .trigger[aria-expanded="true"] {
+  background: #eaf0ff;
+  color: var(--bw-blue);
+}
+
+.mobile .panel {
+  position: fixed;
+  top: auto;
+  bottom: calc(88px + env(safe-area-inset-bottom));
+  left: 12px;
+  right: 12px;
+  width: auto;
+  max-width: none;
+  max-height: calc(100dvh - 175px - env(safe-area-inset-bottom));
+}
+
+@media (max-width: 360px) {
+  .mobile .trigger {
+    font-size: 11px;
+  }
+
+  .mobile .trigger svg {
+    width: 10px;
+    height: 10px;
+  }
+}

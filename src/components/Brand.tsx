@@ -15,7 +15,10 @@ export function Brand() {
           className={styles.image}
         />
       </span>
-      <span className={styles.name}>Budget<span>Worker</span></span>
+      <span className={styles.wordmark}>
+        <span className={styles.name}>Budget<span>Worker</span></span>
+        <span className={styles.tagline}>Trusted help. Better homes</span>
+      </span>
     </Link>
   );
 }

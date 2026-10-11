@@ -2,6 +2,7 @@ import { Prisma, type Job, type Worker } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "./db";
 import { AuthError, type SessionUser } from "./auth";
+import { EMPLOYMENT_TYPES } from "./constants";
 import {
   CATEGORIES,
   PAY_PERIODS,
@@ -14,7 +15,7 @@ export const jobSchema = z
   .object({
     title: text(5, 100),
     category: z.enum(CATEGORIES),
-    employmentType: z.enum(["PART_TIME", "FULL_TIME"]),
+    employmentType: z.enum(EMPLOYMENT_TYPES),
     description: text(20, 2000),
     city: text(2, 80),
     area: text(2, 120),
@@ -29,7 +30,7 @@ export const profileSchema = z
   .object({
     name: text(2, 100),
     category: z.enum(CATEGORIES),
-    employmentType: z.enum(["PART_TIME", "FULL_TIME"]),
+    employmentType: z.enum(EMPLOYMENT_TYPES),
     city: text(2, 80),
     area: text(2, 120),
     skill: text(2, 300),
@@ -52,7 +53,7 @@ export const settingsSchema = z
   .strict();
 export const DEFAULT_SETTINGS = {
   id: "main",
-  headline: "Good help. Close to home.",
+  headline: "Verified Domestic Help Services",
   description:
     "Browse local worker profiles for free. Choose a resume pack to unlock the people who fit your home.",
   announcement: "",
@@ -149,7 +150,7 @@ export const publicWorkerSelect = {
 export async function requireWorker(user: SessionUser) {
   const w = await prisma.worker.findUnique({ where: { userId: user.id } });
   if (!w) throw new AuthError("Create your worker profile first", 403);
-  if (w.onboardingStatus !== "APPROVED" || w.status !== "AVAILABLE")
+  if (w.onboardingStatus !== "APPROVED" || w.status !== "AVAILABLE" || !(CATEGORIES as readonly string[]).includes(w.category))
     throw new AuthError(
       "Your profile must be approved and available to apply",
       403,
@@ -198,7 +199,7 @@ export async function browseJobs(url: URL) {
     ...(input.city
       ? { city: { equals: input.city, mode: "insensitive" } }
       : {}),
-    ...(input.category ? { category: input.category } : {}),
+    category: input.category ?? { in: [...CATEGORIES] },
   };
   if (input.lat != null && input.lng != null) {
     const dy = input.radius / 111;

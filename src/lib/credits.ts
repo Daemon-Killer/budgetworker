@@ -1,4 +1,5 @@
 import { prisma } from "./db";
+import { CATEGORIES } from "../../shared/marketplace";
 
 export async function getCreditBalance(userId: string): Promise<number> {
   const agg = await prisma.creditLedger.aggregate({
@@ -45,6 +46,7 @@ export async function unlockWorker(userId: string, workerId: string) {
         id: true,
         status: true,
         onboardingStatus: true,
+        category: true,
         resumeSize: true,
         resumeFileName: true,
       },
@@ -54,7 +56,8 @@ export async function unlockWorker(userId: string, workerId: string) {
       (existing
         ? false
         : worker.status !== "AVAILABLE" ||
-          worker.onboardingStatus !== "APPROVED")
+          worker.onboardingStatus !== "APPROVED" ||
+          !(CATEGORIES as readonly string[]).includes(worker.category))
     )
       throw new CreditError("Worker not available", 404);
     if (!worker.resumeSize || !worker.resumeFileName)

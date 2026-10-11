@@ -32,7 +32,7 @@ const fields = [
 const empty = {
   name: "",
   phone: "",
-  category: "COOK",
+  category: "HOUSEKEEPING",
   employmentType: "PART_TIME",
   city: "Pune",
   area: "",
@@ -256,6 +256,11 @@ export function AdminDirectory() {
                   setDraft({ ...draft, category: e.target.value })
                 }
               >
+                {!(CATEGORIES as readonly string[]).includes(draft.category) && (
+                  <option value={draft.category} disabled>
+                    {LABELS[draft.category]} (no longer offered)
+                  </option>
+                )}
                 {CATEGORIES.map((c) => (
                   <option key={c} value={c}>
                     {LABELS[c]}
@@ -273,6 +278,7 @@ export function AdminDirectory() {
               >
                 <option value="PART_TIME">Part time</option>
                 <option value="FULL_TIME">Full time</option>
+                <option value="LIVE_IN">24 hours Live-in</option>
               </select>
             </label>
             <label className="bw-field">

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getSession } from "@/lib/auth";
 import { LogoutButton } from "./LogoutButton";
 import { Brand } from "./Brand";
+import { ServicesMenu } from "./ServicesMenu";
 export async function Nav() {
   const user = await getSession();
   return (
@@ -9,8 +10,10 @@ export async function Nav() {
       <div>
         <Brand />
         <nav aria-label="Main navigation">
-          <Link href="/workers" className="bw-desktop-only">Find help</Link>
-          <Link href="/packs">Resume plans</Link>
+          <Link href="/" className="bw-desktop-only">Home</Link>
+          <ServicesMenu />
+          <Link href="/subscription-price" className="bw-desktop-only">Subscription Price</Link>
+          <Link href="/packs" className="bw-plans-link">Resume+ Interview Booking Plans</Link>
           <Link href="/workers" className="bw-desktop-only">
             All workers
           </Link>

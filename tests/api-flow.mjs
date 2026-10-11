@@ -5,12 +5,12 @@ async function login(phone,name){await api('mobile/auth/request',{method:'POST',
 const family=await login('9876543210','Aarav');const worker=await login('9876543211','Meera');const stranger=await login('9876543213','Other');const pending=await login('9876543212','Pending worker');const admin=await login('9999999999','Admin');
 await api('mobile/auth/verify',{method:'POST',body:{phone:'9876543210',code:'123456'},status:400});
 await api('marketplace/me',{status:401});await api('marketplace/admin/jobs',{token:family,status:403});
-const profile={name:'Pending worker',category:'COOK',employmentType:'PART_TIME',city:'Pune',area:'Baner',skill:'Home cooking',about:'Looking for local cooking work',salaryExpectation:'₹8,000 per month',experienceYears:3,latitude:18.559,longitude:73.786,serviceRadiusKm:10};
+const profile={name:'Pending worker',category:'HOUSEKEEPING',employmentType:'PART_TIME',city:'Pune',area:'Baner',skill:'Home cooking',about:'Looking for local cooking work',salaryExpectation:'₹8,000 per month',experienceYears:3,latitude:18.559,longitude:73.786,serviceRadiusKm:10};
 await api('marketplace/worker',{token:pending,method:'PUT',body:{...profile,policeVerified:true},status:400});
 const pw=await api('marketplace/worker',{token:pending,method:'PUT',body:profile});assert.equal(pw.worker.onboardingStatus,'PENDING');assert.equal(pw.worker.policeVerified,false);checks++;
 const nearby=await api('marketplace/jobs?lat=18.559&lng=73.786&radius=10');assert.ok(nearby.jobs.length>=3);assert.ok(nearby.jobs.every(j=>j.city!=='Mumbai'&&j.distanceKm<=10));assert.ok(!JSON.stringify(nearby).includes('latitude'));checks++;
 await api('marketplace/jobs?lat=18&radius=10',{status:400});
-const fields={title:'Integration test family cook',category:'COOK',employmentType:'PART_TIME',description:'Prepare breakfast and lunch for a family of four with vegetarian food.',city:'Pune',area:'Baner',latitude:18.56,longitude:73.79,payInr:9000,payPeriod:'MONTH',schedule:'Monday–Friday, 8–10 am'};
+const fields={title:'Integration test family cook',category:'HOUSEKEEPING',employmentType:'PART_TIME',description:'Prepare breakfast and lunch for a family of four with vegetarian food.',city:'Pune',area:'Baner',latitude:18.56,longitude:73.79,payInr:9000,payPeriod:'MONTH',schedule:'Monday–Friday, 8–10 am'};
 const job=(await api('marketplace/jobs',{token:family,method:'POST',body:fields,status:201})).job;
 await api('marketplace/jobs/'+job.id,{token:stranger,status:404});
 await api('marketplace/jobs/'+job.id+'/apply',{token:pending,method:'POST',body:{message:'Experienced and interested'},status:403});

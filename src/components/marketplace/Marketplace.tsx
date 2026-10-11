@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
+import { employmentLabel } from "@/lib/constants";
 import {
   CATEGORIES,
   LABELS,
@@ -57,6 +58,9 @@ function Categories({
 }) {
   return (
     <select value={value} onChange={(e) => onChange(e.target.value)}>
+      {!(CATEGORIES as readonly string[]).includes(value) && (
+        <option value={value} disabled>Select a service</option>
+      )}
       {CATEGORIES.map((c) => (
         <option key={c} value={c}>
           {LABELS[c]}
@@ -84,7 +88,7 @@ function JobCard({
       <p className="bw-pay">{payLabel(job)}</p>
       <p className="bw-muted">
         {job.area} ·{" "}
-        {job.employmentType === "PART_TIME" ? "Part-time" : "Full-time"}
+        {employmentLabel(job.employmentType)}
       </p>
       <p>{job.schedule}</p>
       <p className="bw-description">{job.description}</p>
@@ -176,7 +180,7 @@ function LocationFields({
 }
 
 function JobForm({ done, city }: { done: () => void; city: string }) {
-  const [category, setCategory] = useState<string>("COOK"),
+  const [category, setCategory] = useState<string>(CATEGORIES[0]),
     [lat, setLat] = useState(""),
     [lng, setLng] = useState(""),
     [error, setError] = useState(""),
@@ -232,6 +236,7 @@ function JobForm({ done, city }: { done: () => void; city: string }) {
           <select name="employmentType">
             <option value="PART_TIME">Part-time</option>
             <option value="FULL_TIME">Full-time</option>
+            <option value="LIVE_IN">24 hours Live-in</option>
           </select>
         </Field>
         <Field label="City">
@@ -300,7 +305,7 @@ function ProfileForm({
   city: string;
   done: () => void;
 }) {
-  const [category, setCategory] = useState(worker?.category ?? "COOK"),
+  const [category, setCategory] = useState(worker?.category ?? CATEGORIES[0]),
     [lat, setLat] = useState(worker?.latitude?.toString() ?? ""),
     [lng, setLng] = useState(worker?.longitude?.toString() ?? ""),
     [busy, setBusy] = useState(false),
@@ -359,6 +364,7 @@ function ProfileForm({
           >
             <option value="PART_TIME">Part-time</option>
             <option value="FULL_TIME">Full-time</option>
+            <option value="LIVE_IN">24 hours Live-in</option>
           </select>
         </Field>
         <Field label="City">

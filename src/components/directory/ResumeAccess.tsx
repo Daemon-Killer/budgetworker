@@ -113,10 +113,10 @@ export function ResumeAccess({
               {packs.map((p) => (
                 <article key={p.id}>
                   <h3>{p.name}</h3>
-                  <strong>₹{p.priceInr}</strong>
+                  <strong>₹{p.priceInr} <span data-gst-label style={{ fontSize: "0.5em", display: "inline", whiteSpace: "nowrap" }}>+ GST</span></strong>
                   <p>
                     {p.credits} resume{p.credits === 1 ? "" : "s"} · ₹
-                    {Math.round(p.priceInr / p.credits)} each
+                    {Math.round(p.priceInr / p.credits)} <span data-gst-label style={{ fontSize: "0.5em", display: "inline", whiteSpace: "nowrap" }}>+ GST</span> each
                   </p>
                   {loggedIn ? (
                     <PackPurchase packId={p.id} loggedIn />

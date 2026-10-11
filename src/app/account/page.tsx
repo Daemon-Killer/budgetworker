@@ -43,6 +43,8 @@ export default async function AccountPage() {
         </Link>
       </div>
 
+      <Link href="/bookings" className="bw-button secondary">My service bookings →</Link>
+
       <section>
         <h2 className="font-semibold">Unlocked resumes</h2>
         {unlocks.length === 0 ? (
@@ -97,7 +99,7 @@ export default async function AccountPage() {
             {orders.map((o) => (
               <li key={o.id} className="flex justify-between px-4 py-3 text-sm">
                 <span>
-                  {o.pack.name} · +{o.credits} resume credits
+                  {o.pack.name}{o.credits > 0 ? ` · +${o.credits} resume credits` : " · Service subscription"}
                 </span>
                 <span className="text-slate-600">
                   ₹{o.amountInr} · {new Date(o.createdAt).toLocaleDateString()}

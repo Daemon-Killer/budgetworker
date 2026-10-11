@@ -3,6 +3,7 @@ import { prisma } from "./db";
 import { toPublicWorker } from "./workers";
 import { listUnlockedWorkerIds } from "./credits";
 import { WORKER_CATEGORIES, EMPLOYMENT_TYPES } from "./constants";
+import { CATEGORIES } from "../../shared/marketplace";
 import type { DirectoryResult } from "../../shared/directory";
 const sql = Prisma.sql;
 export function inputError(message: string): never {
@@ -22,6 +23,7 @@ export async function searchWorkers(
   const clauses: Prisma.Sql[] = [
     sql`w.status='AVAILABLE'`,
     sql`w."onboardingStatus"='APPROVED'`,
+    sql`w.category IN (${Prisma.join(CATEGORIES)})`,
   ];
   for (const key of ["city", "area"] as const) {
     const value = sp.get(key)?.trim();
@@ -38,6 +40,8 @@ export async function searchWorkers(
     if (value) {
       if (!(allowed as readonly string[]).includes(value))
         inputError("Invalid " + key);
+      if (key === "category" && !(CATEGORIES as readonly string[]).includes(value))
+        inputError("This service is no longer offered");
       clauses.push(sql`${Prisma.raw('w."' + key + '"')}=${value}`);
     }
   }

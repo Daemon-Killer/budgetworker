@@ -1,0 +1,86 @@
+.section {
+  min-width: 0;
+}
+
+.section h2 {
+  margin-bottom: 24px;
+  color: var(--bw-ink);
+  font-size: clamp(23px, 2.7vw, 30px);
+  font-weight: 720;
+  line-height: 1.2;
+  letter-spacing: -1px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(9, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 14px 6px;
+  border: 1px solid var(--bw-line);
+  border-radius: 16px;
+  background: white;
+}
+
+.sketch {
+  position: relative;
+  width: 88px;
+  height: 88px;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.sketchImage {
+  position: absolute;
+  width: 300%;
+  height: 300%;
+  max-width: none;
+  filter: grayscale(1);
+  opacity: 0.78;
+}
+
+.card h3 {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 38px;
+  color: var(--bw-ink);
+  font-size: 14px;
+  font-weight: 650;
+  line-height: 1.35;
+  text-align: center;
+}
+
+@media (max-width: 1099px) {
+  .grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 599px) {
+  .grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .card {
+    padding: 10px 4px;
+    border-radius: 14px;
+    gap: 4px;
+  }
+
+  .sketch {
+    width: 72px;
+    height: 72px;
+  }
+}

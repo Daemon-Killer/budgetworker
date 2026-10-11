@@ -3,6 +3,8 @@ import { getSession } from "@/lib/auth";
 import { hasUnlocked } from "@/lib/credits";
 import { toPublicWorker } from "@/lib/workers";
 import { jsonError, jsonOk } from "@/lib/api";
+import { publicWorkerSelect } from "@/lib/directory";
+import { CATEGORIES } from "../../../../../shared/marketplace";
 
 export async function GET(
   req: Request,
@@ -10,8 +12,11 @@ export async function GET(
 ) {
   try {
     const { id } = await ctx.params;
-    const worker = await prisma.worker.findUnique({ where: { id } });
-    if (!worker || worker.status !== "AVAILABLE" || worker.onboardingStatus !== "APPROVED") {
+    const worker = await prisma.worker.findFirst({
+      where: { id, status: "AVAILABLE", onboardingStatus: "APPROVED", category: { in: [...CATEGORIES] } },
+      select: publicWorkerSelect,
+    });
+    if (!worker) {
       return jsonError(Object.assign(new Error("Worker not found"), { status: 404 }));
     }
 

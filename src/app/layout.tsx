@@ -81,11 +81,16 @@ export default function RootLayout({
               </ul>
             </div>
             <div>
-              <p className="hh-section-label !text-blue-600">Why families use us</p>
+              <p className="hh-section-label !text-blue-600">Why Families Choose BudgetWorker</p>
               <ul className="mt-3 space-y-2.5 text-sm text-slate-600">
-                <li>Browse free — no paywall on the list</li>
-                <li>From ~₹199 for resume unlock packs</li>
-                <li>You hire &amp; pay the worker directly</li>
+                <li>💰 Budget-Friendly Service Fees</li>
+                <li>📋 Clear Duties Before Joining</li>
+                <li>👤 Interview Before You Hire</li>
+                <li>🛡️ Replacement Protection</li>
+                <li>✅ Verified Worker Information</li>
+                <li>🎯 Requirement-Based Matching</li>
+                <li>👶 Specialized Japa Care</li>
+                <li>🤝 Fair for Families. Fair for Workers.</li>
               </ul>
             </div>
           </div>

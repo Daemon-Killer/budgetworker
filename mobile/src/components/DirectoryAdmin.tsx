@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
-import { Platform, Text, View } from "react-native";
+import { Platform, Pressable, Text, View } from "react-native";
 import * as DocumentPicker from "expo-document-picker";
 import { API_URL, getToken, request } from "../lib/api";
 import { CATEGORIES, LABELS } from "../../../shared/marketplace";
 import { Button, Choices, Field, styles } from "./DirectoryUI";
+import { DirectoryAdminInterviews } from "./DirectoryAdminInterviews";
 const empty = {
   name: "",
   phone: "",
@@ -74,6 +75,7 @@ export function DirectoryAdmin() {
     [asset, setAsset] = useState<DocumentPicker.DocumentPickerAsset | null>(
       null,
     ),
+    [contactReviewed, setContactReviewed] = useState(false),
     [tab, setTab] = useState("profiles"),
     [settings, setSettings] = useState<Settings | null>(null),
     [busy, setBusy] = useState(false),
@@ -110,6 +112,7 @@ export function DirectoryAdmin() {
   function edit(w?: Worker) {
     setId(w?.id ?? null);
     setAsset(null);
+    setContactReviewed(false);
     setPlaces([]);
     setError("");
     setDraft(
@@ -140,12 +143,17 @@ export function DirectoryAdmin() {
       if ((r.assets[0].size ?? 0) > 4 * 1024 * 1024)
         throw Error("Resume must be 4 MB or smaller");
       setAsset(r.assets[0]);
+      setContactReviewed(false);
     }
   }
   async function save() {
     if (!draft) return;
     if (!asset && !id) {
       setError("Choose a resume before publishing this profile.");
+      return;
+    }
+    if (asset && !contactReviewed) {
+      setError("Review the resume and remove contact details before confirming the upload.");
       return;
     }
     await run(async () => {
@@ -161,6 +169,7 @@ export function DirectoryAdmin() {
       } else await request("mobile/admin/workers/" + saved, "PATCH", draft);
       if (asset) {
         const form = new FormData();
+        form.append("contactReviewed", "true");
         if (Platform.OS === "web") {
           if (!asset.file) throw Error("Please choose the file again");
           form.append("file", asset.file);
@@ -199,6 +208,7 @@ export function DirectoryAdmin() {
         label="Manage"
         options={[
           ["profiles", "Worker profiles"],
+          ["interviews", "Interviews"],
           ["content", "Website content"],
         ]}
         value={tab}
@@ -368,6 +378,15 @@ export function DirectoryAdmin() {
               <Text style={styles.small}>
                 Up to 4 MB. Existing resume is kept unless you replace it.
               </Text>
+              <Text style={styles.small}>
+                Remove phone numbers, email addresses, social handles and other contact details from the file before uploading. This is a manual review; the app does not redact files automatically.
+              </Text>
+              {asset ? (
+                <Pressable accessibilityRole="checkbox" accessibilityState={{ checked: contactReviewed, disabled: busy }}
+                  disabled={busy} onPress={() => setContactReviewed((value) => !value)} style={styles.field}>
+                  <Text style={styles.label}>{contactReviewed ? "☑" : "☐"} I reviewed this resume and removed phone numbers, emails and other contact details.</Text>
+                </Pressable>
+              ) : null}
               <Button
                 title={busy ? "Saving…" : "Save profile & resume"}
                 disabled={busy}
@@ -392,6 +411,9 @@ export function DirectoryAdmin() {
                 {w.status.toLowerCase()} ·{" "}
                 {w.resumeFileName ?? "No resume uploaded"}
               </Text>
+              {w.resumeFileName && w.resumeContactReviewed !== true ? (
+                <Text style={styles.small}>Contact review needed. Re-upload a reviewed resume before families can download it.</Text>
+              ) : null}
               <Button
                 title="Edit profile / resume"
                 secondary
@@ -401,6 +423,7 @@ export function DirectoryAdmin() {
           ))}
         </>
       )}
+      {tab === "interviews" ? <DirectoryAdminInterviews /> : null}
       {tab === "content" && settings && (
         <View style={styles.card}>
           {(

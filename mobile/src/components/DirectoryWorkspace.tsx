@@ -32,6 +32,7 @@ import {
 import { Button, Choices, Field, styles } from "./DirectoryUI";
 import { DirectoryLogin } from "./DirectoryLogin";
 import { DirectoryAdmin } from "./DirectoryAdmin";
+import { DirectoryInterviews, RequestWorkerInterview } from "./DirectoryInterviews";
 type Account = {
   user: { id: string; name: string | null; role: string } | null;
   balance: number;
@@ -292,7 +293,7 @@ export function DirectoryWorkspace({
         />
         <Text style={styles.small}>
           {w.hasResume
-            ? "1 credit unlocks the full resume · Profile details are free"
+            ? "1 credit unlocks the resume + 1 included interview"
             : "Resume coming soon"}
         </Text>
         <Pressable
@@ -399,6 +400,7 @@ export function DirectoryWorkspace({
                 options={[
                   ["browse", "Workers"],
                   ["saved", "My resumes"],
+                  ["interviews", "My interviews"],
                   ["plans", "Plans"],
                 ]}
                 value={tab}
@@ -588,7 +590,7 @@ export function DirectoryWorkspace({
                   <>
                     <Text style={styles.body}>
                       {account.balance} resume credits remaining. Unlocked
-                      resumes can be opened again for free.
+                      resumes can be opened again for free. Each includes one interview.
                     </Text>
                     {unlocked.map(profile)}
                     {unlocked.length === 0 && (
@@ -600,11 +602,12 @@ export function DirectoryWorkspace({
                 ) : (
                   login
                 ))}
+              {tab === "interviews" && (account.user ? <DirectoryInterviews /> : login)}
               {tab === "plans" && (
                 <>
                   <Text style={styles.body}>
-                    1 credit = 1 worker resume. Browse profiles for free; unlock
-                    only the resumes you choose.
+                    1 credit = 1 worker resume + 1 included interview. Browse profiles for free; unlock
+                    only the workers you choose.
                   </Text>
                   {packs.map((p) => (
                     <View key={p.id} style={styles.card}>
@@ -718,7 +721,7 @@ export function DirectoryWorkspace({
                         <>
                           <Text style={styles.body}>
                             Choose a plan to unlock this worker’s resume. One
-                            credit unlocks one resume; repeat downloads are
+                            credit unlocks one resume and one interview; repeat downloads are
                             free.
                           </Text>
                           {account.user && account.balance > 0 ? (
@@ -760,6 +763,11 @@ export function DirectoryWorkspace({
                         </>
                       )}
                     </View>
+                    {account.user && (selected.unlocked || unlocked.some((w) => w.id === selected.id)) ? (
+                      <RequestWorkerInterview key={selected.id} worker={selected} onViewBookings={() => {
+                        setSelected(null); setTab("interviews");
+                      }} />
+                    ) : null}
                   </>
                 )}
           </ScrollView>

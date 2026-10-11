@@ -20,6 +20,7 @@ export function Button({
   return (
     <Pressable
       accessibilityRole="button"
+      accessibilityState={{ disabled }}
       disabled={disabled}
       onPress={onPress}
       style={[
@@ -40,12 +41,16 @@ export function Field({
   onChange,
   multiline = false,
   keyboardType = "default",
+  placeholder,
+  maxLength,
 }: {
   label: string;
   value: string;
   onChange: (v: string) => void;
   multiline?: boolean;
   keyboardType?: KeyboardTypeOptions;
+  placeholder?: string;
+  maxLength?: number;
 }) {
   return (
     <View style={styles.field}>
@@ -56,6 +61,8 @@ export function Field({
         onChangeText={onChange}
         multiline={multiline}
         keyboardType={keyboardType}
+        placeholder={placeholder}
+        maxLength={maxLength}
         style={[
           styles.input,
           multiline && { minHeight: 90, textAlignVertical: "top" },

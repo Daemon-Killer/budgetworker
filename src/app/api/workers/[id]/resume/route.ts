@@ -2,6 +2,7 @@ import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { hasUnlocked } from "@/lib/credits";
 import { NextResponse } from "next/server";
+import { publicResumeFileName } from "@/lib/resume-file";
 
 /**
  * Download resume — only if client has unlocked this worker (1 credit).
@@ -32,6 +33,7 @@ export async function GET(
         resumeData: true,
         resumeFileName: true,
         resumeMimeType: true,
+        resumeContactReviewed: true,
         status: true,
       },
     });
@@ -39,13 +41,16 @@ export async function GET(
     if (!worker?.resumeData || !worker.resumeFileName) {
       return NextResponse.json({ error: "Resume not found" }, { status: 404 });
     }
+    if (!worker.resumeContactReviewed) {
+      return NextResponse.json({ error: "This resume is being reviewed. Your interview entitlement is unchanged." }, { status: 409, headers: { "Cache-Control": "private, no-store" } });
+    }
 
     const bytes = new Uint8Array(worker.resumeData);
     return new NextResponse(bytes, {
       status: 200,
       headers: {
         "Content-Type": worker.resumeMimeType || "application/octet-stream",
-        "Content-Disposition": `attachment; filename="${worker.resumeFileName.replace(/"/g, "")}"`,
+        "Content-Disposition": `attachment; filename="${publicResumeFileName(worker.resumeMimeType, worker.resumeFileName)}"`,
         "Content-Length": String(bytes.byteLength),
         "Cache-Control": "private, no-store",
       },

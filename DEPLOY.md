@@ -32,6 +32,10 @@ Deploy a candidate with vercel deploy --prod --skip-domain, verify its website a
 
 Git integration, if connected later, should deploy only main with the existing environment configuration and backup process.
 
+## Interview pilot
+
+See INTERVIEWS.md for family/admin flows and Daily setup. The interview and resume contact-review migrations are additive. Take and verify an encrypted backup before applying them. Existing resume bytes remain stored, but staff must review/remove contact details and re-upload before family downloads resume. Existing unlocks retain their included interview. Scheduling can launch while DAILY_API_KEY is absent; real calls require that server-only Production Secret and a new deployment.
+
 ## Mobile
 
 Check out app, then install and build in mobile/. Set EXPO_PUBLIC_API_URL to https://budgetworker.in for a hosted build, or the local backend's LAN URL for development. Apply compatible backend migrations before distributing the app. See mobile/README.md for native configuration and acceptance checks. Review APKs use test signing; app-store releases require production signing and developer accounts.

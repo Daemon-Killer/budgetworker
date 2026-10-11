@@ -27,6 +27,7 @@ export const adminWorkerSelect = {
   internalNotes: true,
   resumeFileName: true,
   resumeSize: true,
+  resumeContactReviewed: true,
   whenCanJoin: true,
   workingLocation: true,
   livingLocation: true,

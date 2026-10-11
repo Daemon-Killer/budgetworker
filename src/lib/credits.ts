@@ -1,4 +1,5 @@
 import { prisma } from "./db";
+import { publicResumeFileName } from "./resume-file";
 
 export async function getCreditBalance(userId: string): Promise<number> {
   const agg = await prisma.creditLedger.aggregate({
@@ -47,6 +48,7 @@ export async function unlockWorker(userId: string, workerId: string) {
         onboardingStatus: true,
         resumeSize: true,
         resumeFileName: true,
+        resumeContactReviewed: true,
       },
     });
     if (
@@ -59,6 +61,8 @@ export async function unlockWorker(userId: string, workerId: string) {
       throw new CreditError("Worker not available", 404);
     if (!worker.resumeSize || !worker.resumeFileName)
       throw new CreditError("No resume uploaded for this worker yet", 404);
+    if (!worker.resumeContactReviewed)
+      throw new CreditError("This resume is being reviewed. No credit has been charged.", 409);
     const agg = await tx.creditLedger.aggregate({
       where: { userId },
       _sum: { delta: true },
@@ -68,7 +72,7 @@ export async function unlockWorker(userId: string, workerId: string) {
       return {
         alreadyUnlocked: true,
         workerId,
-        resumeFileName: worker.resumeFileName,
+        resumeFileName: publicResumeFileName(null, worker.resumeFileName),
         resumeUrl: "/api/workers/" + workerId + "/resume",
         balance,
       };
@@ -85,7 +89,7 @@ export async function unlockWorker(userId: string, workerId: string) {
       alreadyUnlocked: false,
       workerId,
       unlockId: unlock.id,
-      resumeFileName: worker.resumeFileName,
+      resumeFileName: publicResumeFileName(null, worker.resumeFileName),
       resumeUrl: "/api/workers/" + workerId + "/resume",
       balance: balance - 1,
     };

@@ -33,7 +33,8 @@ export default async function PacksPage({
         <p className="mt-2 text-sm leading-relaxed text-slate-600">
           The worker directory stays free. Packs buy unlock credits:{" "}
           <strong className="text-slate-900">1 credit = 1 full resume</strong>,
-          re-download free forever.
+          re-download free forever. Each unlocked resume includes one completed
+          interview with that worker, subject to availability.
           {session ? (
             <span className="ml-1 font-semibold text-emerald-700">
               {" "}
@@ -95,6 +96,7 @@ export default async function PacksPage({
                   <li>· One-time — not a subscription</li>
                   <li>· Credits never expire</li>
                   <li>· Re-download free after unlock</li>
+                  <li>· One completed interview per unlocked worker</li>
                 </ul>
                 <div className="mt-auto pt-5">
                   <PackPurchase packId={p.id} loggedIn={Boolean(session)} />

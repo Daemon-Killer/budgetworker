@@ -1,0 +1,36 @@
+export const INTERVIEW_STATUSES = ["REQUESTED", "SCHEDULED", "CONFIRMED", "COMPLETED", "CANCELLED", "NO_SHOW"] as const;
+export type InterviewStatus = typeof INTERVIEW_STATUSES[number];
+export const INTERVIEW_OUTCOMES = ["INTERESTED", "NOT_A_FIT", "FOLLOW_UP"] as const;
+export type InterviewOutcome = typeof INTERVIEW_OUTCOMES[number];
+export const INTERVIEW_DURATION_MINUTES = 15;
+export const INTERVIEW_JOIN_EARLY_MINUTES = 10;
+export const INTERVIEW_JOIN_END_MINUTES = 30;
+
+export type InterviewView = {
+  id: string;
+  workerId: string;
+  workerName: string;
+  category: string;
+  city: string;
+  area: string | null;
+  status: InterviewStatus;
+  proposedSlots: string[];
+  scheduledAt: string | null;
+  durationMinutes: number;
+  duties: string;
+  schedule: string;
+  meetingArea: string;
+  expectedPayInr: number | null;
+  outcome: InterviewOutcome | null;
+  createdAt: string;
+  updatedAt: string;
+  version: number;
+};
+export type AdminInterviewView = InterviewView & { familyName: string; familyPhone: string; workerPhone: string };
+export type RequestInterviewInput = { workerId: string; proposedSlots: string[]; duties: string; schedule: string; meetingArea: string; expectedPayInr: number | null };
+export type FamilyInterviewMutation = { action: "CANCEL" | "RESCHEDULE" | "OUTCOME"; version: number; proposedSlots?: string[]; outcome?: InterviewOutcome };
+export type AdminInterviewMutation = { action: "CONFIRM" | "CANCEL" | "RETRY" | "COMPLETE" | "NO_SHOW"; version: number; scheduledAt?: string };
+export type InterviewJoin = { roomUrl: string; token: string; displayName: string };
+export type InterviewListResponse = { interviews: InterviewView[]; callsConfigured: boolean };
+export type AdminInterviewListResponse = { interviews: AdminInterviewView[]; callsConfigured: boolean };
+export type InterviewEligibility = { unlocked: boolean; interview: InterviewView | null; callsConfigured: boolean };

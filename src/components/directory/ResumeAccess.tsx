@@ -46,13 +46,18 @@ export function ResumeAccess({
       setBusy(false);
     }
   }
-  if (!worker.hasResume)
+  if (!worker.hasResume && !worker.unlocked && !ready)
     return <span className="bw-muted">Resume coming soon</span>;
   if (ready || worker.unlocked)
     return (
-      <a className="bw-button" href={"/api/workers/" + worker.id + "/resume"}>
-        Open resume ↗
-      </a>
+      <div className="flex flex-wrap items-center gap-2">
+        {worker.hasResume && <a className="bw-button" href={"/api/workers/" + worker.id + "/resume"}>
+          Open resume ↗
+        </a>}
+        <Link className="bw-button secondary" href={"/interviews/request?worker=" + encodeURIComponent(worker.id)}>
+          Request interview
+        </Link>
+      </div>
     );
   return (
     <>
@@ -86,7 +91,8 @@ export function ResumeAccess({
         </h2>
         <p className="bw-description">
           {worker.name}’s profile is free to browse. One credit unlocks their
-          full resume. You can open it again without using another credit.
+          full resume and includes one completed interview with this worker,
+          subject to availability. You can open the resume again without using another credit.
         </p>
         {error && (
           <p role="alert" className="bw-error">

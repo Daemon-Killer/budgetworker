@@ -29,6 +29,8 @@ model User {
   unlocks  Unlock[]
   otpCodes OtpCode[]
   checkoutTickets CheckoutTicket[]
+  interviews Interview[]
+  interviewBrowserTickets InterviewBrowserTicket[]
 }
 
 model CheckoutTicket {
@@ -136,6 +138,7 @@ model Worker {
   resumeMimeType    String?
   resumeSize        Int?
   resumeData        Bytes?
+  resumeContactReviewed Boolean @default(false)
   // Internal ops (calling / marketing) — phone never shown on public site
   internalNotes     String?
   lastCalledAt      DateTime?
@@ -153,6 +156,7 @@ model Worker {
   reviews Review[]
 
   unlocks Unlock[]
+  interviews Interview[]
 
   @@index([status, city, category])
   @@index([status, onboardingStatus, expectedPayInr])
@@ -167,9 +171,57 @@ model Unlock {
   user   User           @relation(fields: [userId], references: [id])
   worker Worker         @relation(fields: [workerId], references: [id])
   ledger CreditLedger[]
+  interview Interview?
 
   @@unique([userId, workerId])
   @@index([userId])
+}
+
+// One record per paid resume unlock; completedAt is never cleared by retries.
+model Interview {
+  id String @id @default(cuid())
+  unlockId String @unique
+  unlock Unlock @relation(fields: [unlockId], references: [id])
+  userId String
+  user User @relation(fields: [userId], references: [id])
+  workerId String
+  worker Worker @relation(fields: [workerId], references: [id])
+  status String @default("REQUESTED")
+  proposedSlots Json
+  scheduledAt DateTime?
+  durationMinutes Int @default(15)
+  duties String
+  schedule String
+  meetingArea String
+  expectedPayInr Int?
+  outcome String?
+  version Int @default(1)
+  inviteHash String? @unique
+  inviteExpiresAt DateTime?
+  roomName String?
+  roomUrl String?
+  roomGeneration Int @default(0)
+  familyJoinedAt DateTime?
+  workerJoinedAt DateTime?
+  completedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  browserTickets InterviewBrowserTicket[]
+  @@index([userId, createdAt])
+  @@index([workerId, status, scheduledAt])
+  @@index([userId, status, scheduledAt])
+}
+
+model InterviewBrowserTicket {
+  id String @id
+  userId String
+  user User @relation(fields: [userId], references: [id])
+  interviewId String
+  interview Interview @relation(fields: [interviewId], references: [id])
+  sessionVersion Int
+  expiresAt DateTime
+  consumed Boolean @default(false)
+  @@index([expiresAt])
 }
 
 model Job {

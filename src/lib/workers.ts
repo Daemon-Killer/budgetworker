@@ -1,5 +1,6 @@
 import type { Worker } from "@prisma/client";
 import type { DirectoryWorker } from '../../shared/directory';
+import { publicResumeFileName } from "./resume-file";
 
 /**
  * Public directory profile — free for all clients.
@@ -33,8 +34,8 @@ export type PublicWorker = {
   unlocked: boolean;
 };
 
-export function toPublicWorker(w: Pick<Worker, keyof Omit<DirectoryWorker,'hasResume'|'unlocked'|'distanceKm'>> & {resumeSize?:number|null;resumeData?:Uint8Array|null}, unlocked: boolean): DirectoryWorker {
-  const hasResume = Boolean((w.resumeSize || w.resumeData?.length) && w.resumeFileName);
+export function toPublicWorker(w: Pick<Worker, keyof Omit<DirectoryWorker,'hasResume'|'unlocked'|'distanceKm'>> & {resumeSize?:number|null;resumeData?:Uint8Array|null;resumeContactReviewed?:boolean}, unlocked: boolean): DirectoryWorker {
+  const hasResume = Boolean(w.resumeContactReviewed && (w.resumeSize || w.resumeData?.length) && w.resumeFileName);
   return {
     id: w.id,
     name: w.name,
@@ -60,7 +61,7 @@ export function toPublicWorker(w: Pick<Worker, keyof Omit<DirectoryWorker,'hasRe
     aadhaarVerified: w.aadhaarVerified,
     status: w.status,
     hasResume,
-    resumeFileName: hasResume && unlocked ? w.resumeFileName : null,
+    resumeFileName: hasResume && unlocked ? publicResumeFileName(null, w.resumeFileName) : null,
     unlocked,
   };
 }

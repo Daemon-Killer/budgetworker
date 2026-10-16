@@ -1,4 +1,4 @@
-import { normalizePhone } from "./phone";
+import { isValidPhone, normalizePhone } from "./phone";
 
 type Environment = Record<string, string | undefined>;
 const list = (value?: string) => new Set((value ?? "").split(",").map((p) => normalizePhone(p.trim())).filter(Boolean));
@@ -6,7 +6,7 @@ function fail(message: string, status: number): never {
   throw Object.assign(new Error(message), { status });
 }
 
-/** Production testing uses an owner-held code and an explicit phone allowlist. */
+/** Production testing requires an explicit phone allowlist. */
 export function devLogin(phone: string, env: Environment = process.env) {
   if (env.NODE_ENV !== "production") return { code: env.DEV_OTP_CODE ?? "123456", reveal: true, admin: false };
   if (env.ALLOW_PRODUCTION_DEV_OTP !== "true") fail("Test login is not enabled on this server", 503);
@@ -16,5 +16,18 @@ export function devLogin(phone: string, env: Environment = process.env) {
   const admins = list(env.TEST_ADMIN_PHONES);
   if (!allowed.size || [...admins].some((p) => !allowed.has(p))) fail("Approved test phones are not configured", 503);
   if (!allowed.has(phone)) fail("Testing is limited to approved mobile numbers. Contact the site owner for access.", 403);
-  return { code, reveal: false, admin: admins.has(phone) };
+  return { code, reveal: env.SHOW_TEST_OTP === "true", admin: admins.has(phone) };
+}
+
+/** Read-only hint: never issues a challenge or sends an SMS. */
+export function testOtpHint(rawPhone: string, env: Environment = process.env): string | null {
+  if (env.SHOW_TEST_OTP !== "true" || (env.OTP_MODE ?? "dev").toLowerCase().trim() !== "dev") return null;
+  const phone = normalizePhone(rawPhone);
+  if (!isValidPhone(phone)) return null;
+  try {
+    const test = devLogin(phone, env);
+    return test.reveal ? test.code : null;
+  } catch {
+    return null;
+  }
 }

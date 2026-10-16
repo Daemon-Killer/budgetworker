@@ -195,6 +195,8 @@ export default function WorkerApp() {
   const [phone, setPhone] = useState("");
   const [code, setCode] = useState("");
   const [devCode, setDevCode] = useState<string>();
+  const [testHint, setTestHint] = useState<{ phone: string; code: string }>();
+  const hintCode = stage === "otp" ? devCode : testHint?.phone === phone ? testHint.code : undefined;
   const [cooldown, setCooldown] = useState(0);
   const [ready, setReady] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -267,6 +269,32 @@ export default function WorkerApp() {
   useEffect(() => {
     document.documentElement.lang = language;
   }, [language]);
+  useEffect(() => {
+    if (user || stage !== "login" || !/^[6-9]\d{9}$/.test(phone)) return;
+    const controller = new AbortController();
+    const timer = setTimeout(async () => {
+      try {
+        const response = await fetch("/api/auth/test-otp", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ phone }),
+          cache: "no-store",
+          signal: controller.signal,
+        });
+        if (!response.ok) return;
+        const result: { devCode: string | null } = await response.json();
+        if (!controller.signal.aborted && result.devCode) {
+          setTestHint({ phone, code: result.devCode });
+        }
+      } catch {
+        // A hint lookup must not interrupt normal OTP login.
+      }
+    }, 300);
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [phone, stage, user]);
   useEffect(() => {
     if (!cooldown) return;
     const timer = setTimeout(() => setCooldown(cooldown - 1), 1000);
@@ -359,6 +387,7 @@ export default function WorkerApp() {
       setTopic("OTHER");
       setFilter("");
       setDevCode(undefined);
+      setTestHint(undefined);
       setStage("login");
       setTab("home");
     });
@@ -616,6 +645,7 @@ export default function WorkerApp() {
                 onClick={() => {
                   setStage(stage === "otp" ? "login" : "language");
                   setCode("");
+                  setDevCode(undefined);
                   setError("");
                 }}
               >
@@ -628,10 +658,12 @@ export default function WorkerApp() {
                   : t("मोबाइल नंबर से लॉगिन", "Login with your mobile")}
               </h1>
               <p className="muted">
-                {stage === "otp"
+                {stage === "otp" && devCode
+                  ? t("टेस्ट OTP नीचे दिखाया गया है। SMS नहीं आएगा।", "Your test OTP is shown below. No SMS will be sent.")
+                  : stage === "otp"
                   ? t(
-                      `हमने +91 ${phone} पर 6 अंकों का OTP भेजा है।`,
-                      `Enter the 6-digit code sent to +91 ${phone}.`,
+                      `+91 ${phone} के लिए वेरिफिकेशन कोड डालें।`,
+                      `Enter the verification code for +91 ${phone}.`,
                     )
                   : t(
                       "हम आपके मोबाइल पर OTP भेजेंगे।",
@@ -646,8 +678,8 @@ export default function WorkerApp() {
                       className="otp"
                       inputMode="numeric"
                       autoComplete="one-time-code"
-                      pattern="[0-9]{6}"
-                      maxLength={6}
+                      pattern="[0-9]{6,10}"
+                      maxLength={10}
                       required
                       value={code}
                       onChange={(e) =>
@@ -669,15 +701,19 @@ export default function WorkerApp() {
                         required
                         placeholder="98765 43210"
                         value={phone}
-                        onChange={(e) =>
-                          setPhone(e.target.value.replace(/\D/g, ""))
-                        }
+                        onChange={(e) => {
+                          setPhone(e.target.value.replace(/\D/g, ""));
+                          setTestHint(undefined);
+                          setDevCode(undefined);
+                        }}
                       />
                     </div>
                   </label>
                 )}
-                {devCode && stage === "otp" && (
-                  <p className="alert">Local test OTP: {devCode}</p>
+                {hintCode && (
+                  <p className="alert" role="status">
+                    {t("टेस्ट OTP:", "Test OTP:")} <strong>{hintCode}</strong>
+                  </p>
                 )}
                 {feedback}
                 <button className="primary wide" disabled={busy}>

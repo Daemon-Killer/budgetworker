@@ -20,4 +20,12 @@ Version 1.0.2 (Android versionCode 3) keeps package `in.budgetworker.app`. Saath
 
 Android arm64 review APKs can be assembled locally. They use test signing and are for sideload testing. Native device acceptance remains, including GPS permission, PDF opening and payment return. iOS compilation/signing requires an Apple developer account; no store submission has been performed.
 
+## Build and download an APK on GitHub
+
+Open the repository's **Actions → Build Android APK → Run workflow**, select the branch to build, and click **Run workflow**. After the run succeeds, open its **Artifacts** section (or the download link in its summary), download `budgetworker-saathi-apk-<build number>`, extract the ZIP, and install the APK. The workflow also runs automatically for changes to `mobile/`, `shared/`, or the workflow on `main` and in pull requests targeting `main`.
+
+The build runs on GitHub's Ubuntu runner using the pinned mobile lockfile, Expo prebuild, and Gradle. It checks lint and TypeScript, produces a standalone ARM64 APK targeting `https://budgetworker.in`, verifies its package/version/architecture/signature, and includes SHA-256 checksums and source metadata. No Expo token or Android signing secret is needed for these test-signed sideload builds. Store distribution requires a separate production signing setup. GitHub Actions usage and artifact storage count toward the repository's existing plan.
+
+Each run uses Android versionCode `1000 + github.run_number` so later runs can update earlier CI builds. A rerun keeps the same versionCode. The app's version name comes from `app.json`. Artifact downloads expire after 14 days; run the workflow again for a fresh download. The **Run workflow** button becomes available once the workflow is on the repository's default branch.
+
 For Windows Android long paths, the optional config plugin accepts `BUDGETWORKER_CMAKE_STAGING_DIR`. Map the repository to an unused short drive, set the staging path to that drive's `.c` folder and run `npx expo prebuild --platform android --clean --no-install`. Set `EXPO_PUBLIC_API_URL` before prebuild/bundling. Keep the drive mapping through compilation and remove it afterward. Native folders are generated; edit app config/plugins instead.

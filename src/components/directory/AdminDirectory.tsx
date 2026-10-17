@@ -264,8 +264,12 @@ export function AdminDirectory() {
                   setDraft({ ...draft, employmentType: e.target.value })
                 }
               >
+                {draft.employmentType === "FULL_TIME" && (
+                  <option value="FULL_TIME" disabled>
+                    Full time (no longer offered)
+                  </option>
+                )}
                 <option value="PART_TIME">Part time</option>
-                <option value="FULL_TIME">Full time</option>
                 <option value="LIVE_IN">24 hours Live-in</option>
               </select>
             </label>

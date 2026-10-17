@@ -1,6 +1,7 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
 import { CATEGORIES, LABELS } from "../../../shared/marketplace";
+const adminCategories = CATEGORIES.filter((category) => category !== "CHEF");
 type Worker = {
   id: string;
   name: string;
@@ -247,12 +248,12 @@ export function AdminDirectory() {
                   setDraft({ ...draft, category: e.target.value })
                 }
               >
-                {!(CATEGORIES as readonly string[]).includes(draft.category) && (
+                {!(adminCategories as readonly string[]).includes(draft.category) && (
                   <option value={draft.category} disabled>
                     {LABELS[draft.category]} (no longer offered)
                   </option>
                 )}
-                {CATEGORIES.map((c) => (
+                {adminCategories.map((c) => (
                   <option key={c} value={c}>
                     {LABELS[c]}
                   </option>

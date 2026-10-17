@@ -21,7 +21,6 @@ const fields = [
   ["city", "City"],
   ["area", "Area / neighbourhood"],
   ["age", "Age"],
-  ["experienceYears", "Years of experience"],
   ["skill", "Skills"],
   ["workingLocation", "Preferred work area"],
 ] as const;
@@ -413,6 +412,24 @@ export function AdminDirectory() {
                 <option value="Between 4-7 days">Between 4-7 days</option>
                 <option value="After 7 days">After 7 days</option>
                 <option value="After 15 days">After 15 days</option>
+              </select>
+            </label>
+            <label className="bw-field">
+              Years of experience
+              <select
+                aria-label="Years of experience"
+                value={draft.experienceYears}
+                onChange={(e) => setDraft({ ...draft, experienceYears: e.target.value })}
+              >
+                <option value="">Select experience</option>
+                {draft.experienceYears && Number(draft.experienceYears) > 10 && (
+                  <option value={draft.experienceYears}>10+ years ({draft.experienceYears} years saved)</option>
+                )}
+                {Array.from({ length: 11 }, (_, years) => (
+                  <option key={years} value={String(years)}>
+                    {years === 10 ? "10+ years" : `${years}-${years + 1} years`}
+                  </option>
+                ))}
               </select>
             </label>
             <label className="bw-field">

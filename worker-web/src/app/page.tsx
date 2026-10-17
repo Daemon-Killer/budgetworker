@@ -107,9 +107,10 @@ async function api<T>(
   const res = await fetch(
     path,
     body === undefined
-      ? { cache: "no-store" }
+      ? { cache: "no-store", signal: AbortSignal.timeout(20000) }
       : {
           method,
+          signal: AbortSignal.timeout(20000),
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(body),
         },
@@ -187,6 +188,7 @@ export default function WorkerApp() {
   const [profile, setProfile] = useState<Profile>(initial);
   const [account, setAccount] = useState<Account | null>(null);
   const [jobs, setJobs] = useState<Job[]>([]);
+  const [jobsUnavailable, setJobsUnavailable] = useState(false);
   const [applications, setApplications] = useState<Application[]>([]);
   const [tab, setTab] = useState<Tab>("home");
   const [selected, setSelected] = useState<Job | null>(null);
@@ -214,16 +216,23 @@ export default function WorkerApp() {
       : value === "DAY"
         ? t("दिन", "day")
         : t("महीना", "month");
+  async function loadJobs(city?: string) {
+    // Job availability must not prevent access to a worker's saved profile.
+    const [me, list] = await Promise.allSettled([
+      api<{ applications: Application[] }>("/api/marketplace/me"),
+      api<{ jobs: Job[] }>(
+        `/api/marketplace/jobs${city ? `?city=${encodeURIComponent(city)}` : ""}`,
+      ),
+    ]);
+    setApplications(me.status === "fulfilled" ? me.value.applications : []);
+    setJobs(list.status === "fulfilled" ? list.value.jobs : []);
+    setJobsUnavailable(me.status === "rejected" || list.status === "rejected");
+  }
   async function loadAccount() {
     const a = await api<Account>("/api/worker-account");
     setAccount(a);
     setProfile(a.profile || initial);
-    const m = await api<{ applications: Application[] }>("/api/marketplace/me");
-    setApplications(m.applications);
-    const list = await api<{ jobs: Job[] }>(
-      `/api/marketplace/jobs${a.profile?.city ? `?city=${encodeURIComponent(a.profile.city)}` : ""}`,
-    );
-    setJobs(list.jobs);
+    await loadJobs(a.profile?.city);
     return a;
   }
   function chooseLanguage(next: "hi" | "en") {
@@ -322,7 +331,7 @@ export default function WorkerApp() {
       void id;
       void verifiedPhone;
       void onboardingStatus;
-      await api(
+      const saved = await api<{ profile: Profile }>(
         "/api/worker-account",
         {
           ...editable,
@@ -334,13 +343,18 @@ export default function WorkerApp() {
         },
         "PUT",
       );
-      await loadAccount();
+      // The write response contains the committed database record. An unrelated
+      // refresh failure must not turn a successful save into a reported failure.
+      setProfile(saved.profile);
+      setAccount((previous) => previous ? { ...previous, profile: saved.profile } : previous);
+      setUser((previous) => previous ? { ...previous, name: saved.profile.name } : previous);
       setNotice(
         t(
           "प्रोफ़ाइल सेव हो गई। टीम आपकी जानकारी की समीक्षा करेगी।",
           "Profile saved. The team will review your information.",
         ),
       );
+      await loadJobs(saved.profile.city);
     });
   }
   async function logout() {
@@ -351,6 +365,7 @@ export default function WorkerApp() {
       setAccount(null);
       setApplications([]);
       setJobs([]);
+      setJobsUnavailable(false);
       setCode("");
       setPhone("");
       setSelected(null);
@@ -809,6 +824,21 @@ export default function WorkerApp() {
             </div>
           )}
           {feedback}
+          {jobsUnavailable && (
+            <div className="alert" role="status">
+              <p>{t(
+                "नौकरियों की जानकारी अभी लोड नहीं हो रही है। आप अपनी प्रोफ़ाइल देख और सेव कर सकते हैं।",
+                "Jobs are temporarily unavailable. You can still view and save your profile.",
+              )}</p>
+              <button
+                className="text-button"
+                disabled={busy}
+                onClick={() => action(() => loadJobs(profile.city))}
+              >
+                {t("नौकरियाँ दोबारा लोड करें", "Retry loading jobs")}
+              </button>
+            </div>
+          )}
           {tab === "home" && (
             <>
               <section className="greeting">
@@ -1302,7 +1332,7 @@ export default function WorkerApp() {
                   )
                   .map(jobCard)}
               </div>
-              {!jobs.some(
+              {!jobsUnavailable && !jobs.some(
                 (j) =>
                   (!filter || j.category === filter) &&
                   !hiddenJobs.includes(j.id),

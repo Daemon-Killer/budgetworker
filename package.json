@@ -23,6 +23,7 @@
     "dev:worker": "next dev worker-web --port 3001",
     "build:worker": "next build worker-web",
     "test:worker": "node tests/run-marketplace.mjs --worker",
+    "test:saathi-profile": "npm run build:saathi && node tests/run-marketplace.mjs --saathi-profile",
     "build:saathi": "node scripts/build-saathi.mjs"
   },
   "prisma": {

@@ -41,6 +41,7 @@ const empty = {
   vegNonVeg: "",
   religion: "",
   englishLanguage: "",
+  qualification: "",
   latitude: "",
   longitude: "",
   policeVerified: false,
@@ -323,6 +324,20 @@ export function AdminDirectory() {
                 <option value="Thoda English">Thoda English</option>
                 <option value="Good English">Good English</option>
                 <option value="Fluent English">Fluent English</option>
+              </select>
+            </label>
+            <label className="bw-field">
+              Qualification
+              <select
+                aria-label="Qualification"
+                value={draft.qualification}
+                onChange={(e) => setDraft({ ...draft, qualification: e.target.value })}
+              >
+                <option value="">Select qualification</option>
+                <option value="Below 10th pass">Below 10th pass</option>
+                <option value="10th pass">10th pass</option>
+                <option value="12th pass">12th pass</option>
+                <option value="Graduation">Graduation</option>
               </select>
             </label>
             <label className="bw-field">

@@ -34,6 +34,7 @@ export const workerInput = z
     salaryExpectation: text,
     vegNonVeg: text,
     religion: text,
+    qualification: z.enum(["", "Below 10th pass", "10th pass", "12th pass", "Graduation"]).nullable().optional(),
     englishLanguage: z.enum(["", "No English", "Thoda English", "Good English", "Fluent English"]).nullable().optional(),
     livingLocation: text,
     workingLocation: text,

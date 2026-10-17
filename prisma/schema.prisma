@@ -133,6 +133,7 @@ model Worker {
   vegNonVeg         String?
   religion          String?
   englishLanguage   String?
+  qualification     String?
   experienceYears   Int?
   livingLocation    String?
   workingLocation   String?

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Image from "next/image";
 
 type Profile = {
@@ -107,9 +107,10 @@ async function api<T>(
   const res = await fetch(
     path,
     body === undefined
-      ? { cache: "no-store" }
+      ? { cache: "no-store", signal: AbortSignal.timeout(20000) }
       : {
           method,
+          signal: AbortSignal.timeout(20000),
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(body),
         },
@@ -187,6 +188,7 @@ export default function WorkerApp() {
   const [profile, setProfile] = useState<Profile>(initial);
   const [account, setAccount] = useState<Account | null>(null);
   const [jobs, setJobs] = useState<Job[]>([]);
+  const [jobsUnavailable, setJobsUnavailable] = useState(false);
   const [applications, setApplications] = useState<Application[]>([]);
   const [tab, setTab] = useState<Tab>("home");
   const [selected, setSelected] = useState<Job | null>(null);
@@ -195,6 +197,8 @@ export default function WorkerApp() {
   const [phone, setPhone] = useState("");
   const [code, setCode] = useState("");
   const [devCode, setDevCode] = useState<string>();
+  const [testHint, setTestHint] = useState<{ phone: string; code: string }>();
+  const hintCode = stage === "otp" ? devCode : testHint?.phone === phone ? testHint.code : undefined;
   const [cooldown, setCooldown] = useState(0);
   const [ready, setReady] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -214,18 +218,25 @@ export default function WorkerApp() {
       : value === "DAY"
         ? t("दिन", "day")
         : t("महीना", "month");
-  async function loadAccount() {
+  const loadJobs = useCallback(async (city?: string) => {
+    // Job availability must not prevent access to a worker's saved profile.
+    const [me, list] = await Promise.allSettled([
+      api<{ applications: Application[] }>("/api/marketplace/me"),
+      api<{ jobs: Job[] }>(
+        `/api/marketplace/jobs${city ? `?city=${encodeURIComponent(city)}` : ""}`,
+      ),
+    ]);
+    setApplications(me.status === "fulfilled" ? me.value.applications : []);
+    setJobs(list.status === "fulfilled" ? list.value.jobs : []);
+    setJobsUnavailable(me.status === "rejected" || list.status === "rejected");
+  }, []);
+  const loadAccount = useCallback(async () => {
     const a = await api<Account>("/api/worker-account");
     setAccount(a);
     setProfile(a.profile || initial);
-    const m = await api<{ applications: Application[] }>("/api/marketplace/me");
-    setApplications(m.applications);
-    const list = await api<{ jobs: Job[] }>(
-      `/api/marketplace/jobs${a.profile?.city ? `?city=${encodeURIComponent(a.profile.city)}` : ""}`,
-    );
-    setJobs(list.jobs);
+    await loadJobs(a.profile?.city);
     return a;
-  }
+  }, [loadJobs]);
   function chooseLanguage(next: "hi" | "en") {
     setLanguage(next);
     try {
@@ -263,10 +274,36 @@ export default function WorkerApp() {
       window.speechSynthesis?.cancel();
     };
     // The session is loaded once when the worker app opens.
-  }, []);
+  }, [loadAccount]);
   useEffect(() => {
     document.documentElement.lang = language;
   }, [language]);
+  useEffect(() => {
+    if (user || stage !== "login" || !/^[6-9]\d{9}$/.test(phone)) return;
+    const controller = new AbortController();
+    const timer = setTimeout(async () => {
+      try {
+        const response = await fetch("/api/auth/test-otp", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ phone }),
+          cache: "no-store",
+          signal: controller.signal,
+        });
+        if (!response.ok) return;
+        const result: { devCode: string | null } = await response.json();
+        if (!controller.signal.aborted && result.devCode) {
+          setTestHint({ phone, code: result.devCode });
+        }
+      } catch {
+        // A hint lookup must not interrupt normal OTP login.
+      }
+    }, 300);
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [phone, stage, user]);
   useEffect(() => {
     if (!cooldown) return;
     const timer = setTimeout(() => setCooldown(cooldown - 1), 1000);
@@ -322,7 +359,7 @@ export default function WorkerApp() {
       void id;
       void verifiedPhone;
       void onboardingStatus;
-      await api(
+      const saved = await api<{ profile: Profile }>(
         "/api/worker-account",
         {
           ...editable,
@@ -334,13 +371,22 @@ export default function WorkerApp() {
         },
         "PUT",
       );
-      await loadAccount();
+      // The write response contains the committed database record. An unrelated
+      // refresh failure must not turn a successful save into a reported failure.
+      setProfile(saved.profile);
+      setAccount((previous) =>
+        previous ? { ...previous, profile: saved.profile } : previous,
+      );
+      setUser((previous) =>
+        previous ? { ...previous, name: saved.profile.name } : previous,
+      );
       setNotice(
         t(
           "प्रोफ़ाइल सेव हो गई। टीम आपकी जानकारी की समीक्षा करेगी।",
           "Profile saved. The team will review your information.",
         ),
       );
+      await loadJobs(saved.profile.city);
     });
   }
   async function logout() {
@@ -351,6 +397,7 @@ export default function WorkerApp() {
       setAccount(null);
       setApplications([]);
       setJobs([]);
+      setJobsUnavailable(false);
       setCode("");
       setPhone("");
       setSelected(null);
@@ -359,6 +406,7 @@ export default function WorkerApp() {
       setTopic("OTHER");
       setFilter("");
       setDevCode(undefined);
+      setTestHint(undefined);
       setStage("login");
       setTab("home");
     });
@@ -616,6 +664,7 @@ export default function WorkerApp() {
                 onClick={() => {
                   setStage(stage === "otp" ? "login" : "language");
                   setCode("");
+                  setDevCode(undefined);
                   setError("");
                 }}
               >
@@ -628,10 +677,12 @@ export default function WorkerApp() {
                   : t("मोबाइल नंबर से लॉगिन", "Login with your mobile")}
               </h1>
               <p className="muted">
-                {stage === "otp"
+                {stage === "otp" && devCode
+                  ? t("टेस्ट OTP नीचे दिखाया गया है। SMS नहीं आएगा।", "Your test OTP is shown below. No SMS will be sent.")
+                  : stage === "otp"
                   ? t(
-                      `हमने +91 ${phone} पर 6 अंकों का OTP भेजा है।`,
-                      `Enter the 6-digit code sent to +91 ${phone}.`,
+                      `+91 ${phone} के लिए वेरिफिकेशन कोड डालें।`,
+                      `Enter the verification code for +91 ${phone}.`,
                     )
                   : t(
                       "हम आपके मोबाइल पर OTP भेजेंगे।",
@@ -646,8 +697,8 @@ export default function WorkerApp() {
                       className="otp"
                       inputMode="numeric"
                       autoComplete="one-time-code"
-                      pattern="[0-9]{6}"
-                      maxLength={6}
+                      pattern="[0-9]{6,10}"
+                      maxLength={10}
                       required
                       value={code}
                       onChange={(e) =>
@@ -669,15 +720,19 @@ export default function WorkerApp() {
                         required
                         placeholder="98765 43210"
                         value={phone}
-                        onChange={(e) =>
-                          setPhone(e.target.value.replace(/\D/g, ""))
-                        }
+                        onChange={(e) => {
+                          setPhone(e.target.value.replace(/\D/g, ""));
+                          setTestHint(undefined);
+                          setDevCode(undefined);
+                        }}
                       />
                     </div>
                   </label>
                 )}
-                {devCode && stage === "otp" && (
-                  <p className="alert">Local test OTP: {devCode}</p>
+                {hintCode && (
+                  <p className="alert" role="status">
+                    {t("टेस्ट OTP:", "Test OTP:")} <strong>{hintCode}</strong>
+                  </p>
                 )}
                 {feedback}
                 <button className="primary wide" disabled={busy}>
@@ -809,6 +864,21 @@ export default function WorkerApp() {
             </div>
           )}
           {feedback}
+          {jobsUnavailable && (
+            <div className="alert" role="status">
+              <p>{t(
+                "नौकरियों की जानकारी अभी लोड नहीं हो रही है। आप अपनी प्रोफ़ाइल देख और सेव कर सकते हैं।",
+                "Jobs are temporarily unavailable. You can still view and save your profile.",
+              )}</p>
+              <button
+                className="text-button"
+                disabled={busy}
+                onClick={() => action(() => loadJobs(profile.city))}
+              >
+                {t("नौकरियाँ दोबारा लोड करें", "Retry loading jobs")}
+              </button>
+            </div>
+          )}
           {tab === "home" && (
             <>
               <section className="greeting">
@@ -1302,7 +1372,7 @@ export default function WorkerApp() {
                   )
                   .map(jobCard)}
               </div>
-              {!jobs.some(
+              {!jobsUnavailable && !jobs.some(
                 (j) =>
                   (!filter || j.category === filter) &&
                   !hiddenJobs.includes(j.id),

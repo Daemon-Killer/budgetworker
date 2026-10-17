@@ -25,7 +25,6 @@ const fields = [
   ["whenCanJoin", "Can join from"],
   ["livingLocation", "Lives in"],
   ["workingLocation", "Preferred work area"],
-  ["vegNonVeg", "Food preferences"],
   ["religion", "Religion (optional)"],
 ] as const;
 const empty = {
@@ -42,7 +41,6 @@ const empty = {
   whenCanJoin: "",
   livingLocation: "",
   workingLocation: "",
-  vegNonVeg: "",
   religion: "",
   latitude: "",
   longitude: "",

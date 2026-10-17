@@ -3,6 +3,7 @@ export const adminWorkerSelect = {
   name: true,
   phone: true,
   category: true,
+  secondaryCategory: true,
   employmentType: true,
   city: true,
   area: true,

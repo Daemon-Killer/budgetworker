@@ -37,7 +37,7 @@ export function WorkerProfile({ initial, packs, loggedIn, balance }: {
   );
   const w = worker;
   const rows = [
-    ["Type of help", LABELS[w.category]],
+    ["Type of help", [w.category, w.secondaryCategory].filter(Boolean).map((category) => LABELS[category!]).join(", ")],
     [
       "Work arrangement",
       employmentLabel(w.employmentType),

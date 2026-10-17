@@ -22,13 +22,13 @@ const fields = [
   ["age", "Age"],
   ["experienceYears", "Years of experience"],
   ["skill", "Skills"],
-  ["whenCanJoin", "Can join from"],
   ["workingLocation", "Preferred work area"],
 ] as const;
 const empty = {
   name: "",
   phone: "",
   category: "HOUSEKEEPING",
+  secondaryCategory: "",
   employmentType: "PART_TIME",
   city: "Pune",
   area: "",
@@ -245,26 +245,35 @@ export function AdminDirectory() {
                 <option key={category} value={LABELS[category]} />
               ))}
             </datalist>
-            <label className="bw-field">
-              Type of help
-              <select aria-label="Type of help"
-                value={draft.category}
-                onChange={(e) =>
-                  setDraft({ ...draft, category: e.target.value })
-                }
-              >
-                {!(adminCategories as readonly string[]).includes(draft.category) && (
-                  <option value={draft.category} disabled>
-                    {LABELS[draft.category]} (no longer offered)
-                  </option>
-                )}
+            <div className="bw-field">
+              Type of help (select up to 2)
+              <details>
+                <summary>{[draft.category, draft.secondaryCategory].filter(Boolean).map((c) => LABELS[c]).join(", ")}</summary>
+                <fieldset aria-label="Type of help">
+                  <legend>Select 1 or 2 types of help</legend>
+                  {!(adminCategories as readonly string[]).includes(draft.category) && (
+                    <p>{LABELS[draft.category]} (no longer offered)</p>
+                  )}
                 {adminCategories.map((c) => (
-                  <option key={c} value={c}>
+                  <label key={c}>
+                    <input
+                      type="checkbox"
+                      checked={draft.category === c || draft.secondaryCategory === c}
+                      disabled={Boolean(draft.secondaryCategory) && draft.category !== c && draft.secondaryCategory !== c}
+                      onChange={(e) => {
+                        const selected = [draft.category, draft.secondaryCategory].filter(Boolean);
+                        const next = e.target.checked
+                          ? [...selected.filter((value) => (adminCategories as readonly string[]).includes(value)), c]
+                          : selected.filter((value) => value !== c);
+                        if (next.length) setDraft({ ...draft, category: next[0], secondaryCategory: next[1] || "" });
+                      }}
+                    />
                     {LABELS[c]}
-                  </option>
+                  </label>
                 ))}
-              </select>
-            </label>
+                </fieldset>
+              </details>
+            </div>
             <label className="bw-field">
               Work arrangement
               <select aria-label="Work arrangement"
@@ -352,6 +361,23 @@ export function AdminDirectory() {
                 {["English", "Hindi", "Marathi", "Punjabi", "Kannada", "Bengali", "Telugu", "Tamil", "Gujarati", "Malayalam", "Odia", "Assamese"].map((language) => (
                   <option key={language} value={language}>{language}</option>
                 ))}
+              </select>
+            </label>
+            <label className="bw-field">
+              Can join from
+              <select
+                aria-label="Can join from"
+                value={draft.whenCanJoin}
+                onChange={(e) => setDraft({ ...draft, whenCanJoin: e.target.value })}
+              >
+                <option value="">Select joining availability</option>
+                {draft.whenCanJoin && !["Immediately", "Between 4-7 days", "After 7 days", "After 15 days"].includes(draft.whenCanJoin) && (
+                  <option value={draft.whenCanJoin} disabled>{draft.whenCanJoin}</option>
+                )}
+                <option value="Immediately">Immediately</option>
+                <option value="Between 4-7 days">Between 4-7 days</option>
+                <option value="After 7 days">After 7 days</option>
+                <option value="After 15 days">After 15 days</option>
               </select>
             </label>
             <label className="bw-field">

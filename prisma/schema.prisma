@@ -119,6 +119,7 @@ model Worker {
   phone  String
   // COOK | HOUSEKEEPING | BABYCARE | JAPA | ELDERCARE | CHEF
   category String
+  secondaryCategory String?
   // PART_TIME | FULL_TIME
   employmentType String @default("FULL_TIME")
   city           String @default("Pune")

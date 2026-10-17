@@ -2,39 +2,7 @@ import { requireAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { jsonError, jsonOk } from "@/lib/api";
 import { validateWorker } from "@/lib/worker-input";
-export const adminWorkerSelect = {
-  id: true,
-  name: true,
-  phone: true,
-  category: true,
-  employmentType: true,
-  city: true,
-  area: true,
-  age: true,
-  skill: true,
-  about: true,
-  expectedPayInr: true,
-  payPeriod: true,
-  hoursPerDay: true,
-  salaryExpectation: true,
-  experienceYears: true,
-  latitude: true,
-  longitude: true,
-  status: true,
-  onboardingStatus: true,
-  policeVerified: true,
-  aadhaarVerified: true,
-  internalNotes: true,
-  resumeFileName: true,
-  resumeSize: true,
-  resumeContactReviewed: true,
-  whenCanJoin: true,
-  workingLocation: true,
-  livingLocation: true,
-  vegNonVeg: true,
-  religion: true,
-  photoUrl: true,
-} as const;
+import { adminWorkerSelect } from "@/lib/admin-worker-select";
 export async function GET(req: Request) {
   try {
     await requireAdmin(req);

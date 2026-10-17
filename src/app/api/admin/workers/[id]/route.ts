@@ -2,7 +2,7 @@ import { requireAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { jsonError, jsonOk } from "@/lib/api";
 import { validateWorker } from "@/lib/worker-input";
-import { adminWorkerSelect } from "../route";
+import { adminWorkerSelect } from "@/lib/admin-worker-select";
 export async function PATCH(
   req: Request,
   ctx: { params: Promise<{ id: string }> },

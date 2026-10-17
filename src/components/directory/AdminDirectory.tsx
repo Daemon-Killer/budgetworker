@@ -24,7 +24,6 @@ const fields = [
   ["skill", "Skills"],
   ["whenCanJoin", "Can join from"],
   ["workingLocation", "Preferred work area"],
-  ["religion", "Religion (optional)"],
 ] as const;
 const empty = {
   name: "",
@@ -293,6 +292,22 @@ export function AdminDirectory() {
                 )}
                 <option value="Veg">Veg</option>
                 <option value="Veg + Non veg">Veg + Non veg</option>
+              </select>
+            </label>
+            <label className="bw-field">
+              Religion (optional)
+              <select
+                aria-label="Religion (optional)"
+                value={draft.religion}
+                onChange={(e) => setDraft({ ...draft, religion: e.target.value })}
+              >
+                <option value="">Select religion</option>
+                {draft.religion && !["Hindu", "Muslim", "Other religion"].includes(draft.religion) && (
+                  <option value={draft.religion} disabled>{draft.religion}</option>
+                )}
+                <option value="Hindu">Hindu</option>
+                <option value="Muslim">Muslim</option>
+                <option value="Other religion">Other religion</option>
               </select>
             </label>
             <label className="bw-field">

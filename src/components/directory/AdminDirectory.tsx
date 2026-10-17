@@ -6,6 +6,7 @@ type Worker = {
   id: string;
   name: string;
   phone: string;
+  documents?: { kind: string; fileName: string }[];
   category: string;
   employmentType: string;
   city: string;
@@ -56,6 +57,8 @@ export function AdminDirectory() {
     [draft, setDraft] = useState<Draft | null>(null),
     [id, setId] = useState<string | null>(null),
     [file, setFile] = useState<File | null>(null),
+    [photo, setPhoto] = useState<File | null>(null),
+    [aadhaar, setAadhaar] = useState<File | null>(null),
     [contactReviewed, setContactReviewed] = useState(false),
     [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
@@ -88,6 +91,8 @@ export function AdminDirectory() {
     setError("");
     setNotice("");
     setFile(null);
+    setPhoto(null);
+    setAadhaar(null);
     setContactReviewed(false);
     setPlaces([]);
     setId(w?.id ?? null);
@@ -139,6 +144,10 @@ export function AdminDirectory() {
     setError("");
     let saved = id;
     try {
+      for (const selected of [photo, aadhaar]) {
+        if (selected && selected.size > 2 * 1024 * 1024)
+          throw Error("Photo and Aadhaar files must each be 2 MB or smaller.");
+      }
       const body = { ...draft };
       if (!saved) {
         const d = await api("", "POST", { ...body, status: "INACTIVE" });
@@ -156,6 +165,15 @@ export function AdminDirectory() {
         const d = await r.json();
         if (!r.ok) throw Error(d.error);
       }
+      for (const [kind, selected] of [["PHOTO", photo], ["AADHAAR", aadhaar]] as const) {
+        if (!selected) continue;
+        const r = await fetch(`/api/admin/workers/${saved}/documents?kind=${kind}`, {
+          method: "PUT", body: selected,
+          headers: { "Content-Type": selected.type || "application/octet-stream" },
+        });
+        const d = await r.json();
+        if (!r.ok) throw Error(d.error);
+      }
       await api("/" + saved, "PATCH", { status: draft.status });
       await load();
       setDraft(null);
@@ -166,7 +184,7 @@ export function AdminDirectory() {
       setError(
         (e instanceof Error ? e.message : "Unable to save") +
           (saved
-            ? " The profile is saved; you can retry the resume upload here."
+            ? " The profile is saved; you can retry any pending uploads here."
             : ""),
       );
     } finally {
@@ -502,6 +520,23 @@ export function AdminDirectory() {
               Aadhaar verified
             </label>
           </div>
+          <div className="bw-form-grid">
+            <label className="bw-field">
+              Worker photo
+              <input aria-label="Worker photo" type="file" accept="image/jpeg,image/png" onChange={(e) => setPhoto(e.target.files?.[0] ?? null)} />
+              <small>JPG or PNG · up to 2 MB. Used as the profile photo.</small>
+            </label>
+            <label className="bw-field">
+              Aadhaar card (private)
+              <input aria-label="Aadhaar card (private)" type="file" accept="image/jpeg,image/png,application/pdf" onChange={(e) => setAadhaar(e.target.files?.[0] ?? null)} />
+              <small>JPG, PNG or PDF · up to 2 MB. Admin access only; uploading resets Aadhaar verification.</small>
+            </label>
+          </div>
+          {id && workers.find((w) => w.id === id)?.documents?.filter((d) => ["PHOTO", "AADHAAR"].includes(d.kind)).map((d) => (
+            <a key={d.kind} className="bw-text-button" href={`/api/admin/workers/${id}/documents?kind=${d.kind}`}>
+              Download saved {d.kind === "PHOTO" ? "worker photo" : "Aadhaar card"}
+            </a>
+          ))}
           <label className="bw-field">
             Worker resume
             <input

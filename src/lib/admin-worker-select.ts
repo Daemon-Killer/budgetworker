@@ -35,4 +35,5 @@ export const adminWorkerSelect = {
   qualification: true,
   preferredLanguage: true,
   photoUrl: true,
+  documents: { select: { kind: true, fileName: true } },
 } as const;

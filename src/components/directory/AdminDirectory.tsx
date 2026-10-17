@@ -260,15 +260,18 @@ export function AdminDirectory() {
             </datalist>
             <div className="bw-field">
               Type of help (select up to 2)
-              <details>
-                <summary>{[draft.category, draft.secondaryCategory].filter(Boolean).map((c) => LABELS[c]).join(", ")}</summary>
+              <details className="bw-help-dropdown">
+                <summary>
+                  <span>{[draft.category, draft.secondaryCategory].filter(Boolean).map((c) => LABELS[c]).join(", ")}</span>
+                  <span aria-hidden="true" className="bw-help-chevron">⌄</span>
+                </summary>
                 <fieldset aria-label="Type of help">
                   <legend>Select 1 or 2 types of help</legend>
                   {!(adminCategories as readonly string[]).includes(draft.category) && (
                     <p>{LABELS[draft.category]} (no longer offered)</p>
                   )}
                 {adminCategories.map((c) => (
-                  <label key={c}>
+                  <label key={c} className="bw-help-option">
                     <input
                       type="checkbox"
                       checked={draft.category === c || draft.secondaryCategory === c}
@@ -284,6 +287,7 @@ export function AdminDirectory() {
                     {LABELS[c]}
                   </label>
                 ))}
+                  <p className="bw-help-hint">Choose up to 2. Uncheck a choice to select another.</p>
                 </fieldset>
               </details>
             </div>

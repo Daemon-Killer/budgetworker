@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Image from "next/image";
 
 type Profile = {
@@ -218,7 +218,7 @@ export default function WorkerApp() {
       : value === "DAY"
         ? t("दिन", "day")
         : t("महीना", "month");
-  async function loadJobs(city?: string) {
+  const loadJobs = useCallback(async (city?: string) => {
     // Job availability must not prevent access to a worker's saved profile.
     const [me, list] = await Promise.allSettled([
       api<{ applications: Application[] }>("/api/marketplace/me"),
@@ -229,14 +229,14 @@ export default function WorkerApp() {
     setApplications(me.status === "fulfilled" ? me.value.applications : []);
     setJobs(list.status === "fulfilled" ? list.value.jobs : []);
     setJobsUnavailable(me.status === "rejected" || list.status === "rejected");
-  }
-  async function loadAccount() {
+  }, []);
+  const loadAccount = useCallback(async () => {
     const a = await api<Account>("/api/worker-account");
     setAccount(a);
     setProfile(a.profile || initial);
     await loadJobs(a.profile?.city);
     return a;
-  }
+  }, [loadJobs]);
   function chooseLanguage(next: "hi" | "en") {
     setLanguage(next);
     try {
@@ -274,7 +274,7 @@ export default function WorkerApp() {
       window.speechSynthesis?.cancel();
     };
     // The session is loaded once when the worker app opens.
-  }, []);
+  }, [loadAccount]);
   useEffect(() => {
     document.documentElement.lang = language;
   }, [language]);
@@ -374,8 +374,12 @@ export default function WorkerApp() {
       // The write response contains the committed database record. An unrelated
       // refresh failure must not turn a successful save into a reported failure.
       setProfile(saved.profile);
-      setAccount((previous) => previous ? { ...previous, profile: saved.profile } : previous);
-      setUser((previous) => previous ? { ...previous, name: saved.profile.name } : previous);
+      setAccount((previous) =>
+        previous ? { ...previous, profile: saved.profile } : previous,
+      );
+      setUser((previous) =>
+        previous ? { ...previous, name: saved.profile.name } : previous,
+      );
       setNotice(
         t(
           "प्रोफ़ाइल सेव हो गई। टीम आपकी जानकारी की समीक्षा करेगी।",

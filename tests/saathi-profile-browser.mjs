@@ -16,8 +16,8 @@ try {
   await page.route('**/api/marketplace/me', jobFailure);
   await page.route('**/api/marketplace/jobs*', jobFailure);
   await page.goto(base + '/saathi');
-  await page.getByRole('button', { name: 'English', exact: true }).click();
-  await page.getByRole('button', { name: 'Continue', exact: true }).click();
+  await page.getByRole('button', { name: 'English' }).click();
+  await page.getByRole('button', { name: 'Continue' }).click();
   await page.getByLabel('Mobile number').fill('9876543211');
   await page.getByRole('button', { name: 'Send OTP', exact: true }).click();
   await page.getByLabel('Verification code').fill('123456');

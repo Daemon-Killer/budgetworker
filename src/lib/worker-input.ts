@@ -34,6 +34,7 @@ export const workerInput = z
     salaryExpectation: text,
     vegNonVeg: text,
     religion: text,
+    englishLanguage: z.enum(["", "No English", "Thoda English", "Good English", "Fluent English"]).nullable().optional(),
     livingLocation: text,
     workingLocation: text,
     whenCanJoin: text,

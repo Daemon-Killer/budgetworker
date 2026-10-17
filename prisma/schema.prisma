@@ -132,6 +132,7 @@ model Worker {
   hoursPerDay      Float?
   vegNonVeg         String?
   religion          String?
+  englishLanguage   String?
   experienceYears   Int?
   livingLocation    String?
   workingLocation   String?

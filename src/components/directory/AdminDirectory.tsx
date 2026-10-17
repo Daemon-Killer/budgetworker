@@ -40,6 +40,7 @@ const empty = {
   workingLocation: "",
   vegNonVeg: "",
   religion: "",
+  englishLanguage: "",
   latitude: "",
   longitude: "",
   policeVerified: false,
@@ -308,6 +309,20 @@ export function AdminDirectory() {
                 <option value="Hindu">Hindu</option>
                 <option value="Muslim">Muslim</option>
                 <option value="Other religion">Other religion</option>
+              </select>
+            </label>
+            <label className="bw-field">
+              English language
+              <select
+                aria-label="English language"
+                value={draft.englishLanguage}
+                onChange={(e) => setDraft({ ...draft, englishLanguage: e.target.value })}
+              >
+                <option value="">Select English level</option>
+                <option value="No English">No English</option>
+                <option value="Thoda English">Thoda English</option>
+                <option value="Good English">Good English</option>
+                <option value="Fluent English">Fluent English</option>
               </select>
             </label>
             <label className="bw-field">

@@ -29,5 +29,6 @@ export const adminWorkerSelect = {
   livingLocation: true,
   vegNonVeg: true,
   religion: true,
+  englishLanguage: true,
   photoUrl: true,
 } as const;

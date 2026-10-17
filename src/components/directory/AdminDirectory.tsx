@@ -18,8 +18,6 @@ const fields = [
   ["phone", "Phone (private)"],
   ["city", "City"],
   ["area", "Area / neighbourhood"],
-  ["expectedPayInr", "Expected pay (₹)"],
-  ["hoursPerDay", "Hours per day"],
   ["age", "Age"],
   ["experienceYears", "Years of experience"],
   ["skill", "Skills"],
@@ -36,9 +34,6 @@ const empty = {
   employmentType: "PART_TIME",
   city: "Pune",
   area: "",
-  expectedPayInr: "",
-  payPeriod: "MONTH",
-  hoursPerDay: "",
   age: "",
   experienceYears: "",
   skill: "",
@@ -219,29 +214,18 @@ export function AdminDirectory() {
               <label className="bw-field" key={key}>
                 {label}
                 <input
-                  required={[
-                    "name",
-                    "phone",
-                    "city",
-                    "area",
-                    "expectedPayInr",
-                    "hoursPerDay",
-                  ].includes(key)}
+                  required={["name", "phone", "city", "area"].includes(key)}
                   type={
                     [
-                      "expectedPayInr",
-                      "hoursPerDay",
                       "age",
                       "experienceYears",
                     ].includes(key)
                       ? "number"
                       : "text"
                   }
-                  min={key === "hoursPerDay" ? 0.5 : key === "age" ? 18 : 0}
-                  max={
-                    key === "hoursPerDay" ? 24 : key === "age" ? 100 : undefined
-                  }
-                  step={key === "hoursPerDay" ? 0.5 : 1}
+                  min={key === "age" ? 18 : 0}
+                  max={key === "age" ? 100 : undefined}
+                  step={1}
                   value={draft[key]}
                   onChange={(e) =>
                     setDraft({
@@ -286,19 +270,6 @@ export function AdminDirectory() {
                 <option value="PART_TIME">Part time</option>
                 <option value="FULL_TIME">Full time</option>
                 <option value="LIVE_IN">24 hours Live-in</option>
-              </select>
-            </label>
-            <label className="bw-field">
-              Pay period
-              <select aria-label="Pay period"
-                value={draft.payPeriod}
-                onChange={(e) =>
-                  setDraft({ ...draft, payPeriod: e.target.value })
-                }
-              >
-                <option value="MONTH">Per month</option>
-                <option value="DAY">Per day</option>
-                <option value="HOUR">Per hour</option>
               </select>
             </label>
             <label className="bw-field">

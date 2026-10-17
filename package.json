@@ -30,6 +30,7 @@
     "seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
+    "@pdf-lib/fontkit": "^1.1.1",
     "@prisma/client": "^5.22.0",
     "dotenv": "^17.4.2",
     "jose": "^6.2.7",
@@ -37,9 +38,11 @@
     "livekit-server-sdk": "2.19.1",
     "nanoid": "^6.0.0",
     "next": "^16.3.8",
+    "pdf-lib": "^1.17.1",
     "razorpay": "^2.9.8",
     "react": "19.2.4",
     "react-dom": "19.2.4",
+    "regenerator-runtime": "^0.14.1",
     "zod": "^4.4.3"
   },
   "devDependencies": {

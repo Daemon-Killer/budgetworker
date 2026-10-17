@@ -62,6 +62,7 @@ export function AdminDirectory() {
     [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
     [notice, setNotice] = useState(""),
+    [resumeDownload, setResumeDownload] = useState<string | null>(null),
     [places, setPlaces] = useState<
       { label: string; latitude: number; longitude: number }[]
     >([]);
@@ -89,6 +90,7 @@ export function AdminDirectory() {
   function edit(w?: Worker) {
     setError("");
     setNotice("");
+    setResumeDownload(null);
     setFile(null);
     setPhoto(null);
     setAadhaar(null);
@@ -173,11 +175,17 @@ export function AdminDirectory() {
         const d = await r.json();
         if (!r.ok) throw Error(d.error);
       }
+      if (!file) {
+        const r = await fetch(`/api/admin/workers/${saved}/resume/generate`, { method: "POST" });
+        const d = await r.json();
+        if (!r.ok) throw Error(d.error || "Unable to generate resume");
+      }
       await api("/" + saved, "PATCH", { status: draft.status });
       await load();
       setDraft(null);
+      setResumeDownload(`/api/admin/workers/${saved}/resume`);
       setNotice(
-        "Profile saved. Available profiles appear in the public directory.",
+        "Profile saved. Your resume is ready to download.",
       );
     } catch (e) {
       setError(
@@ -197,8 +205,7 @@ export function AdminDirectory() {
           <p className="bw-eyebrow">DIRECTORY MANAGEMENT</p>
           <h2>Worker profiles & resumes</h2>
           <p>
-            Add the details families browse and upload the resume they can
-            unlock.
+            Add worker details and save to create a professional PDF resume.
           </p>
         </div>
         <button className="bw-button" onClick={() => edit()}>
@@ -215,6 +222,7 @@ export function AdminDirectory() {
           {notice}
         </p>
       )}
+      {resumeDownload && <a className="bw-button" href={resumeDownload}>Download resume</a>}
       {draft && (
         <form onSubmit={save} className="bw-card bw-form">
           <div className="bw-card-head">
@@ -563,17 +571,15 @@ export function AdminDirectory() {
             </a>
           ))}
           <label className="bw-field">
-            Worker resume
+            Upload your own resume (optional)
             <input
               aria-label="Worker resume"
               type="file"
-              required={!id}
               accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
               onChange={(e) => { setFile(e.target.files?.[0] ?? null); setContactReviewed(false); }}
             />
             <small>
-              PDF, Word or image · up to 4 MB. Existing resume is kept unless
-              replaced.
+              Leave empty to generate a professional PDF from the profile. Or upload PDF, Word or image · up to 4 MB.
             </small>
           </label>
           {file && <label className="bw-check">
@@ -605,6 +611,7 @@ export function AdminDirectory() {
             <button className="bw-button secondary" onClick={() => edit(w)}>
               Edit profile / resume
             </button>
+            {w.resumeFileName && <a className="bw-text-button" href={`/api/admin/workers/${w.id}/resume`}>Download resume</a>}
           </article>
         ))}
       </div>

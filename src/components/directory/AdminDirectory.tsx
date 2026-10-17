@@ -211,6 +211,7 @@ export function AdminDirectory() {
               <label className="bw-field" key={key}>
                 {label}
                 <input
+                  list={key === "skill" ? "admin-worker-skills" : undefined}
                   required={["name", "phone", "city", "area"].includes(key)}
                   type={
                     [
@@ -236,6 +237,11 @@ export function AdminDirectory() {
                 />
               </label>
             ))}
+            <datalist id="admin-worker-skills">
+              {adminCategories.map((category) => (
+                <option key={category} value={LABELS[category]} />
+              ))}
+            </datalist>
             <label className="bw-field">
               Type of help
               <select aria-label="Type of help"

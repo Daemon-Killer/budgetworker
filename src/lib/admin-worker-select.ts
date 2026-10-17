@@ -2,6 +2,7 @@ export const adminWorkerSelect = {
   id: true,
   name: true,
   phone: true,
+  additionalPhone: true,
   category: true,
   secondaryCategory: true,
   employmentType: true,

@@ -19,6 +19,7 @@ export const workerInput = z
       .transform(normalizePhone)
       .refine(isValidPhone, "Valid phone required"),
     category: z.enum(WORKER_CATEGORIES),
+    additionalPhone: z.string().trim().refine((value) => !value || isValidPhone(normalizePhone(value)), "Valid additional phone required").transform((value) => value ? normalizePhone(value) : "").nullable().optional(),
     secondaryCategory: z.enum(["", ...WORKER_CATEGORIES]).nullable().optional(),
     employmentType: z.enum(EMPLOYMENT_TYPES),
     city: z.string().trim().min(2).max(100),

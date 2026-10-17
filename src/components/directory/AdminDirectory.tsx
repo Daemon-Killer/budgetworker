@@ -27,6 +27,7 @@ const fields = [
 const empty = {
   name: "",
   phone: "",
+  additionalPhone: "",
   category: "HOUSEKEEPING",
   secondaryCategory: "",
   employmentType: "PART_TIME",
@@ -211,7 +212,8 @@ export function AdminDirectory() {
           </div>
           <div className="bw-form-grid">
             {fields.map(([key, label]) => (
-              <label className="bw-field" key={key}>
+              <div className="bw-field" key={key}>
+              <label className="bw-field">
                 {label}
                 <input
                   list={key === "skill" ? "admin-worker-skills" : undefined}
@@ -239,6 +241,17 @@ export function AdminDirectory() {
                   }
                 />
               </label>
+              {key === "phone" && (
+                <label className="bw-field">
+                  Additional no (private)
+                  <input
+                    type="tel"
+                    value={draft.additionalPhone}
+                    onChange={(e) => setDraft({ ...draft, additionalPhone: e.target.value })}
+                  />
+                </label>
+              )}
+              </div>
             ))}
             <datalist id="admin-worker-skills">
               {adminCategories.map((category) => (

@@ -117,6 +117,7 @@ model Worker {
   id     String @id @default(cuid())
   name   String
   phone  String
+  additionalPhone String?
   // COOK | HOUSEKEEPING | BABYCARE | JAPA | ELDERCARE | CHEF
   category String
   secondaryCategory String?

@@ -39,6 +39,7 @@ const empty = {
   about: "",
   whenCanJoin: "",
   workingLocation: "",
+  vegNonVeg: "",
   religion: "",
   latitude: "",
   longitude: "",
@@ -277,6 +278,21 @@ export function AdminDirectory() {
                 )}
                 <option value="PART_TIME">Part time</option>
                 <option value="LIVE_IN">24 hours Live-in</option>
+              </select>
+            </label>
+            <label className="bw-field">
+              Food preferences
+              <select
+                aria-label="Food preferences"
+                value={draft.vegNonVeg}
+                onChange={(e) => setDraft({ ...draft, vegNonVeg: e.target.value })}
+              >
+                <option value="">Select food preference</option>
+                {draft.vegNonVeg && !["Veg", "Veg + Non veg"].includes(draft.vegNonVeg) && (
+                  <option value={draft.vegNonVeg} disabled>{draft.vegNonVeg}</option>
+                )}
+                <option value="Veg">Veg</option>
+                <option value="Veg + Non veg">Veg + Non veg</option>
               </select>
             </label>
             <label className="bw-field">

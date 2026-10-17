@@ -134,6 +134,7 @@ model Worker {
   religion          String?
   englishLanguage   String?
   qualification     String?
+  preferredLanguage String?
   experienceYears   Int?
   livingLocation    String?
   workingLocation   String?

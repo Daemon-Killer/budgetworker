@@ -31,5 +31,6 @@ export const adminWorkerSelect = {
   religion: true,
   englishLanguage: true,
   qualification: true,
+  preferredLanguage: true,
   photoUrl: true,
 } as const;

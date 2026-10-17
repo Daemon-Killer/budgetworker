@@ -42,6 +42,7 @@ const empty = {
   religion: "",
   englishLanguage: "",
   qualification: "",
+  preferredLanguage: "",
   latitude: "",
   longitude: "",
   policeVerified: false,
@@ -338,6 +339,19 @@ export function AdminDirectory() {
                 <option value="10th pass">10th pass</option>
                 <option value="12th pass">12th pass</option>
                 <option value="Graduation">Graduation</option>
+              </select>
+            </label>
+            <label className="bw-field">
+              Preferred language
+              <select
+                aria-label="Preferred language"
+                value={draft.preferredLanguage}
+                onChange={(e) => setDraft({ ...draft, preferredLanguage: e.target.value })}
+              >
+                <option value="">Select preferred language</option>
+                {["English", "Hindi", "Marathi", "Punjabi", "Kannada", "Bengali", "Telugu", "Tamil", "Gujarati", "Malayalam", "Odia", "Assamese"].map((language) => (
+                  <option key={language} value={language}>{language}</option>
+                ))}
               </select>
             </label>
             <label className="bw-field">

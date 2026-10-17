@@ -232,8 +232,21 @@ export function AdminDirectory() {
               <div className="bw-field" key={key}>
               <label className="bw-field">
                 {label}
-                <input
-                  list={key === "skill" ? "admin-worker-skills" : undefined}
+                {key === "skill" ? (
+                  <select
+                    aria-label="Skills"
+                    value={draft.skill}
+                    onChange={(e) => setDraft({ ...draft, skill: e.target.value })}
+                  >
+                    <option value="">Select skill</option>
+                    {draft.skill && !adminCategories.some((category) => LABELS[category] === draft.skill) && (
+                      <option value={draft.skill}>{draft.skill} (saved skill)</option>
+                    )}
+                    {adminCategories.map((category) => (
+                      <option key={category} value={LABELS[category]}>{LABELS[category]}</option>
+                    ))}
+                  </select>
+                ) : <input
                   required={["name", "phone", "city", "area"].includes(key)}
                   type={
                     [
@@ -256,7 +269,7 @@ export function AdminDirectory() {
                         : {}),
                     })
                   }
-                />
+                />}
               </label>
               {key === "phone" && (
                 <label className="bw-field">
@@ -270,11 +283,6 @@ export function AdminDirectory() {
               )}
               </div>
             ))}
-            <datalist id="admin-worker-skills">
-              {adminCategories.map((category) => (
-                <option key={category} value={LABELS[category]} />
-              ))}
-            </datalist>
             <div className="bw-field">
               Type of help (select up to 2)
               <details className="bw-help-dropdown">

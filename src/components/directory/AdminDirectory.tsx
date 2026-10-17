@@ -23,7 +23,6 @@ const fields = [
   ["experienceYears", "Years of experience"],
   ["skill", "Skills"],
   ["whenCanJoin", "Can join from"],
-  ["livingLocation", "Lives in"],
   ["workingLocation", "Preferred work area"],
   ["religion", "Religion (optional)"],
 ] as const;
@@ -39,7 +38,6 @@ const empty = {
   skill: "",
   about: "",
   whenCanJoin: "",
-  livingLocation: "",
   workingLocation: "",
   religion: "",
   latitude: "",

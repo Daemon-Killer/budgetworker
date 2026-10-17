@@ -1,134 +1,39 @@
-name: Build Android APK
+name: Export verified Android APK
 
 on:
   workflow_dispatch:
-  push:
-    branches: [main]
-    paths:
-      - mobile/**
-      - shared/**
-      - .github/workflows/android-apk.yml
-  pull_request:
-    branches: [main]
-    paths:
-      - mobile/**
-      - shared/**
-      - .github/workflows/android-apk.yml
 
 permissions:
-  contents: read
-
-concurrency:
-  group: android-apk-${{ github.ref }}
-  cancel-in-progress: true
+  actions: read
+  contents: write
 
 jobs:
-  build:
-    name: Build installable ARM64 APK
+  export:
     runs-on: ubuntu-24.04
-    timeout-minutes: 45
-    defaults:
-      run:
-        working-directory: mobile
-        shell: bash
-    env:
-      CI: '1'
-      EXPO_NO_TELEMETRY: '1'
-      EXPO_NO_DOTENV: '1'
-      EXPO_PUBLIC_API_URL: https://budgetworker.in
-      NODE_OPTIONS: --max-old-space-size=3072
-
+    timeout-minutes: 10
     steps:
-      - name: Check out source
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - name: Download verified build 1005
+        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
         with:
-          persist-credentials: false
-
-      - name: Set up Node.js
-        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
-        with:
-          node-version: 22.x
-          cache: npm
-          cache-dependency-path: mobile/package-lock.json
-
-      - name: Set up Java
-        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
-        with:
-          distribution: temurin
-          java-version: '17'
-          cache: gradle
-          cache-dependency-path: |
-            mobile/package-lock.json
-            mobile/app.config.js
-            mobile/app.json
-
-      - name: Install pinned mobile dependencies
-        run: npm ci --no-audit --no-fund
-
-      - name: Check mobile code
-        run: |
-          npm run lint
-          npm run typecheck
-
-      - name: Set increasing Android build number
-        id: version
-        run: |
-          node <<'NODE'
-          const fs = require('node:fs');
-          const config = JSON.parse(fs.readFileSync('app.json', 'utf8'));
-          const run = Number(process.env.GITHUB_RUN_NUMBER);
-          const code = 1000 + run;
-          if (!Number.isSafeInteger(run) || run < 1 || code > 2100000000) throw new Error('Invalid build number');
-          config.expo.android.versionCode = code;
-          fs.writeFileSync('app.json', JSON.stringify(config, null, 2) + '\n');
-          fs.appendFileSync(process.env.GITHUB_OUTPUT, `code=${code}\n`);
-          NODE
-
-      - name: Generate native Android project
-        run: npx --no-install expo prebuild --platform android --no-install
-
-      - name: Install Android SDK packages
-        run: |
-          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" 'platforms;android-36' 'build-tools;36.0.0'
-
-      - name: Build standalone test-signed APK
-        working-directory: mobile/android
-        run: |
-          chmod +x gradlew
-          ./gradlew :app:assembleRelease --no-daemon --build-cache --max-workers=2 \
-            -PreactNativeArchitectures=arm64-v8a \
-            -Dorg.gradle.jvmargs='-Xmx3072m -XX:MaxMetaspaceSize=1024m'
-
-      - name: Verify APK and collect download files
+          name: budgetworker-saathi-apk-1005
+          run-id: 39044898662
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: apk
+      - name: Verify APK checksum and stage private download
         env:
-          BUILD_CODE: ${{ steps.version.outputs.code }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: apk-build-1005-download
         run: |
-          mkdir -p ../artifacts
-          apk="../artifacts/budgetworker-saathi-build-${BUILD_CODE}-arm64.apk"
-          cp android/app/build/outputs/apk/release/app-release.apk "$apk"
-          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose --print-certs "$apk" > ../artifacts/signature.txt
-          "$ANDROID_HOME/build-tools/36.0.0/aapt" dump badging "$apk" > ../artifacts/apk-info.txt
-          grep -F "name='in.budgetworker.app'" ../artifacts/apk-info.txt
-          grep -F "versionCode='${BUILD_CODE}'" ../artifacts/apk-info.txt
-          grep -F "native-code: 'arm64-v8a'" ../artifacts/apk-info.txt
-          (cd ../artifacts && sha256sum *.apk > SHA256SUMS.txt)
-          printf 'Source commit: %s\nRun: %s/%s/actions/runs/%s\nBackend: %s\nSigning: Expo Android test/debug key (sideload testing)\n' \
-            "$GITHUB_SHA" "$GITHUB_SERVER_URL" "$GITHUB_REPOSITORY" "$GITHUB_RUN_ID" "$EXPO_PUBLIC_API_URL" > ../artifacts/build-info.txt
-
-      - name: Upload APK
-        id: upload
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
-        with:
-          name: budgetworker-saathi-apk-${{ steps.version.outputs.code }}
-          path: artifacts/
-          if-no-files-found: error
-          retention-days: 14
-          compression-level: 0
-
-      - name: Add download link to run summary
-        env:
-          ARTIFACT_URL: ${{ steps.upload.outputs.artifact-url }}
-          BUILD_CODE: ${{ steps.version.outputs.code }}
-        run: |
-          printf '## Android APK ready\n\n[Download APK bundle](%s)\n\nExtract the ZIP and install the APK on an ARM64 Android phone.\n\nBuild: **%s** · Backend: **%s**\n\nThis standalone APK includes the customer app and Saathi worker mode. It uses test signing for sideload testing. No Metro server or Expo account is required.\n\nDownloads are retained for 14 days. Use **Run workflow** to create a fresh build.\n' \
-            "$ARTIFACT_URL" "$BUILD_CODE" "$EXPO_PUBLIC_API_URL" >> "$GITHUB_STEP_SUMMARY"
+          set -euo pipefail
+          cd apk
+          sha256sum --check SHA256SUMS.txt
+          test -f budgetworker-saathi-build-1005-arm64.apk
+          gh release create "$RELEASE_TAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            --target f5da9c7bfd05dfce10a7366a181cd90f6488bb58 \
+            --draft \
+            --title 'BudgetWorker Android build 1005' \
+            --notes 'Verified ARM64 test-signed APK built from merged main. Private draft used to deliver the standalone APK file.'
+          gh release upload "$RELEASE_TAG" \
+            budgetworker-saathi-build-1005-arm64.apk SHA256SUMS.txt build-info.txt signature.txt apk-info.txt \
+            --repo "$GITHUB_REPOSITORY"

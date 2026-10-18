@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { PREFERRED_LANGUAGES, selectedLanguages } from "../../shared/languages";
 import {
   WORKER_CATEGORIES,
   EMPLOYMENT_TYPES,
@@ -36,7 +37,10 @@ export const workerInput = z
     salaryExpectation: text,
     vegNonVeg: text,
     religion: text,
-    preferredLanguage: z.enum(["", "English", "Hindi", "Marathi", "Punjabi", "Kannada", "Bengali", "Telugu", "Tamil", "Gujarati", "Malayalam", "Odia", "Assamese"]).nullable().optional(),
+    preferredLanguage: z.string().max(150).refine((value) => {
+      const languages = selectedLanguages(value);
+      return languages.length <= 4 && new Set(languages).size === languages.length && languages.every((language) => (PREFERRED_LANGUAGES as readonly string[]).includes(language));
+    }, "Select up to 4 different preferred languages").transform((value) => selectedLanguages(value).join(", ")).nullable().optional(),
     qualification: z.enum(["", "Below 10th pass", "10th pass", "12th pass", "Graduation"]).nullable().optional(),
     englishLanguage: z.enum(["", "No English", "Thoda English", "Good English", "Fluent English"]).nullable().optional(),
     livingLocation: text,

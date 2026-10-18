@@ -1,6 +1,7 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
 import { CATEGORIES, LABELS } from "../../../shared/marketplace";
+import { PREFERRED_LANGUAGES, selectedLanguages } from "../../../shared/languages";
 const adminCategories = CATEGORIES.filter((category) => category !== "CHEF");
 type Worker = {
   id: string;
@@ -400,19 +401,28 @@ export function AdminDirectory() {
                 <option value="Graduation">Graduation</option>
               </select>
             </label>
-            <label className="bw-field">
-              Preferred language
-              <select
-                aria-label="Preferred language"
-                value={draft.preferredLanguage}
-                onChange={(e) => setDraft({ ...draft, preferredLanguage: e.target.value })}
-              >
-                <option value="">Select preferred language</option>
-                {["English", "Hindi", "Marathi", "Punjabi", "Kannada", "Bengali", "Telugu", "Tamil", "Gujarati", "Malayalam", "Odia", "Assamese"].map((language) => (
-                  <option key={language} value={language}>{language}</option>
-                ))}
-              </select>
-            </label>
+            <div className="bw-field">
+              Preferred language (select up to 4)
+              <details className="bw-help-dropdown">
+                <summary>
+                  <span>{draft.preferredLanguage || "Select preferred languages"}</span>
+                  <span aria-hidden="true" className="bw-help-chevron">⌄</span>
+                </summary>
+                <fieldset aria-label="Preferred language">
+                  <legend>Select up to 4 preferred languages</legend>
+                  {PREFERRED_LANGUAGES.map((language) => {
+                    const selected = selectedLanguages(draft.preferredLanguage);
+                    const checked = selected.includes(language);
+                    return <label key={language} className="bw-help-option">
+                      <input type="checkbox" checked={checked} disabled={!checked && selected.length >= 4}
+                        onChange={(e) => setDraft({ ...draft, preferredLanguage: (e.target.checked ? [...selected, language] : selected.filter((value) => value !== language)).join(", ") })} />
+                      {language}
+                    </label>;
+                  })}
+                  <p className="bw-help-hint">Choose up to 4. Uncheck a language to select another.</p>
+                </fieldset>
+              </details>
+            </div>
             <label className="bw-field">
               Can join from
               <select

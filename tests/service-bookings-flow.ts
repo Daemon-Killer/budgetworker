@@ -19,13 +19,14 @@ async function main() {
     const answers: BookingAnswers = { city: 'Pune', area: 'Baner', address: 'Flat 201, Test Apartments', pincode: '411045', duties: SERVICE_DUTIES[service.category].slice(0,2), homeSize: '2 BHK', familyMembers: 3, bathrooms: 2, pets: 'No pets', babyType: plan.babyType === 'twins' ? 'twins' : 'single', childAge: service.category === 'JAPA' ? service.employmentType ? 'Newborn' : '0–2 months' : service.category === 'BABYCARE' ? plan.months === 6 ? '6–12 months' : '2–6 months' : 'Not applicable', foodPreference: service.category === 'ALLROUNDER' ? 'Vegetarian' : 'Not applicable', dailyHours: service.employmentType ? 24 : service.slug === "japa-care" ? 1 : 8, startTime: '09:00', weeklyOff: 'Sunday', accommodation: service.employmentType ? 'Private room' : 'Not applicable', startDate: todayInIndia(), monthlySalary: 15000, language: 'Hindi', name: 'Test Client', notes: 'Test booking only' };
     if (service.slug === "domestic-help") { answers.numberOfFloors = "3"; answers.dailyHours = 1; answers.dustingDuration = "1 hour"; answers.moppingMethod = "Hands only"; }
     if (service.slug === "domestic-help") delete answers.monthlySalary;
+    if (service.slug === "babycare") answers.dailyHours = 7;
     const input = { requestId: randomUUID(), serviceSlug: service.slug, planId: plan.id, answers, priceInr: 1, replacements: 100 };
     const result = await bookService(user.id, input);
     assert.equal(result.amountInr, plan.priceInr); assert.equal(result.credits, 0); assert.equal(result.replacements, plan.replacements); assert.equal(result.months, plan.months);
     const saved = await prisma.serviceBooking.findUniqueOrThrow({ where: { id: result.bookingId } });
     assert.equal(saved.status, 'PAID'); assert.equal(saved.priceInr, plan.priceInr);
     assert.deepEqual(saved.answers, answers);
-    if (service.slug === "babycare") await assert.rejects(bookService(user.id, { ...input, requestId: randomUUID(), answers: { ...answers, dailyHours: 4 } }), { status: 400 });
+    if (service.slug === "babycare") for (const dailyHours of [4, 5, 6]) await assert.rejects(bookService(user.id, { ...input, requestId: randomUUID(), answers: { ...answers, dailyHours } }), { status: 400, message: "Choose 7–11 hours for Part-time Babycare" });
     if (!["domestic-help", "japa-care"].includes(service.slug) && !service.employmentType) await assert.rejects(bookService(user.id, { ...input, requestId: randomUUID(), answers: { ...answers, dailyHours: 1 } }), { status: 400 });
     if (service.slug === "japa-care") await assert.rejects(bookService(user.id, { ...input, requestId: randomUUID(), answers: { ...answers, dailyHours: 0 } }), { status: 400 });
     if (service.slug === "domestic-help") await assert.rejects(bookService(user.id, { ...input, requestId: randomUUID(), answers: { ...answers, numberOfFloors: "0" } }), { status: 400 });

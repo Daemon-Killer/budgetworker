@@ -59,7 +59,7 @@ export function workerSalaryEstimate(service: ServiceCard, answers: BookingAnswe
   }
   if (service.category === "JAPA") {
     // Owner-supplied monthly rate for each daily working hour.
-    const salary = answers.dailyHours * (answers.babyType === "twins" ? 3500 : 3000);
+    const salary = answers.dailyHours * (answers.babyType === "twins" ? 3200 : 2800);
     return [salary, salary];
   }
   let range: readonly [number, number] | undefined;

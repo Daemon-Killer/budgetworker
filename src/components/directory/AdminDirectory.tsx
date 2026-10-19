@@ -255,6 +255,21 @@ export function AdminDirectory() {
                       <option key={category} value={LABELS[category]}>{LABELS[category]}</option>
                     ))}
                   </select>
+                ) : key === "city" ? (
+                  <select
+                    aria-label="City"
+                    required
+                    value={draft.city}
+                    onChange={(e) => setDraft({ ...draft, city: e.target.value, latitude: "", longitude: "" })}
+                  >
+                    <option value="">Select city</option>
+                    {draft.city && !["Delhi", "New Delhi", "Gurgaon", "Noida", "Greater Noida", "Faridabad", "Ghaziabad", "Pune", "Mumbai", "Navi Mumbai", "Thane"].includes(draft.city) && (
+                      <option value={draft.city}>{draft.city} (saved city)</option>
+                    )}
+                    {["Delhi", "New Delhi", "Gurgaon", "Noida", "Greater Noida", "Faridabad", "Ghaziabad", "Pune", "Mumbai", "Navi Mumbai", "Thane"].map((city) => (
+                      <option key={city} value={city}>{city}</option>
+                    ))}
+                  </select>
                 ) : <input
                   required={["name", "phone", "city", "area"].includes(key)}
                   type={
@@ -273,7 +288,7 @@ export function AdminDirectory() {
                     setDraft({
                       ...draft,
                       [key]: e.target.value,
-                      ...(key === "city" || key === "area"
+                      ...(key === "area"
                         ? { latitude: "", longitude: "" }
                         : {}),
                     })

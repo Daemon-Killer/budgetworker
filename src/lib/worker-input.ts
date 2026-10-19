@@ -27,6 +27,10 @@ export const workerInput = z
     area: text,
     age: nullableNumber(18, 100, true).optional(),
     experienceYears: nullableNumber(0, 80, true).optional(),
+    experienceCategories: z.string().max(100).refine((value) => {
+      const categories = value.split(",").filter(Boolean);
+      return categories.length <= 4 && new Set(categories).size === categories.length && categories.every((category) => ["HOUSEKEEPING", "ALLROUNDER", "BABYCARE", "JAPA"].includes(category));
+    }, "Choose valid experience categories").optional(),
     expectedPayInr: nullableNumber(1, 1000000, true).optional(),
     payPeriod: z.enum(["MONTH", "DAY", "HOUR"]).optional(),
     hoursPerDay: nullableNumber(0.5, 24).optional(),

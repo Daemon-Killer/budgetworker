@@ -36,6 +36,7 @@ const empty = {
   area: "",
   age: "",
   experienceYears: "",
+  experienceCategories: "",
   skill: "",
   about: "",
   whenCanJoin: "",
@@ -473,6 +474,26 @@ export function AdminDirectory() {
                 ))}
               </select>
             </label>
+            <div className="bw-field">
+              Experience in (select all that apply)
+              <details className="bw-help-dropdown">
+                <summary>
+                  <span>{draft.experienceCategories ? draft.experienceCategories.split(",").map((category) => LABELS[category]).join(", ") : "Select experience categories"}</span>
+                  <span aria-hidden="true" className="bw-help-chevron">⌄</span>
+                </summary>
+                <fieldset aria-label="Experience in">
+                  <legend>Apply total experience to these types of help</legend>
+                  {adminCategories.map((category) => {
+                    const selected = draft.experienceCategories.split(",").filter(Boolean);
+                    return <label key={category} className="bw-help-option">
+                      <input type="checkbox" checked={selected.includes(category)} onChange={(e) => setDraft({ ...draft, experienceCategories: (e.target.checked ? [...selected, category] : selected.filter((value) => value !== category)).join(",") })} />
+                      {LABELS[category]}
+                    </label>;
+                  })}
+                  <p className="bw-help-hint">Total experience applies to every selected category. These years overlap and are not added together.</p>
+                </fieldset>
+              </details>
+            </div>
             <label className="bw-field">
               Directory visibility
               <select aria-label="Directory visibility"

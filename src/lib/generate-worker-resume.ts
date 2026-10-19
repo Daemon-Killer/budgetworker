@@ -57,12 +57,21 @@ export async function generateWorkerResume(w: Worker, photo?: { data: Uint8Array
   section("Professional profile");
   const rows = [
     ["Work arrangement", employmentLabel(w.employmentType)],
-    ["Experience", w.experienceYears == null ? null : w.experienceYears >= 10 ? "10+ years" : `${w.experienceYears}-${w.experienceYears + 1} years`],
+    ["Total experience", w.experienceYears == null ? null : w.experienceYears >= 10 ? "10+ years" : w.experienceYears === 0 ? "0-1 years" : `${w.experienceYears} years`],
     ["Qualification", w.qualification], ["English level", w.englishLanguage],
     ["Preferred language", w.preferredLanguage], ["Can join", w.whenCanJoin],
     ["Preferred work area", w.workingLocation], ["Food preferences", w.vegNonVeg],
   ];
   for (const [label, value] of rows) if (value) draw(`${label}: ${value}`);
+  const experienceCategories = w.experienceCategories
+    ? w.experienceCategories.split(",").filter(Boolean)
+    : [w.category, w.secondaryCategory].filter((value): value is string => Boolean(value));
+  if (w.experienceYears != null && experienceCategories.length) {
+    section("Experience by type of help");
+    const years = w.experienceYears >= 10 ? "10+ years" : w.experienceYears === 0 ? "0-1 years" : `${w.experienceYears} years`;
+    for (const category of experienceCategories) draw(`${LABELS[category] || category}: ${years}`);
+    draw("Experience overlaps across these services; it is not added to the total.", 9, muted);
+  }
   if (w.skill) { section("Skills"); draw(w.skill); }
   if (w.about) { section("About the worker"); draw(w.about); }
   section("Verification");

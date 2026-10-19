@@ -139,6 +139,7 @@ model Worker {
   preferredLanguage String?
   experienceYears   Int?
   experienceCategories String @default("")
+  experienceBreakdown String @default("{}")
   livingLocation    String?
   workingLocation   String?
   whenCanJoin       String?

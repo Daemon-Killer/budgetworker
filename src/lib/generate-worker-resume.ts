@@ -2,6 +2,7 @@ import "regenerator-runtime/runtime";
 import { PDFDocument, rgb, type PDFFont, type PDFPage } from "pdf-lib";
 import fontkit from "@pdf-lib/fontkit";
 import fonts from "./resume-fonts.json";
+import { parseExperience } from "../../shared/experience";
 import { LABELS } from "../../shared/marketplace";
 import { employmentLabel } from "./constants";
 import type { Worker } from "@prisma/client";
@@ -57,7 +58,7 @@ export async function generateWorkerResume(w: Worker, photo?: { data: Uint8Array
   section("Professional profile");
   const rows = [
     ["Work arrangement", employmentLabel(w.employmentType)],
-    ["Total experience", w.experienceYears == null ? null : w.experienceYears >= 10 ? "10+ years" : w.experienceYears === 0 ? "0-1 years" : `${w.experienceYears} years`],
+    ["Total experience", w.experienceYears == null ? null : Object.keys(parseExperience(w.experienceBreakdown)).length ? `${w.experienceYears} years` : w.experienceYears >= 10 ? "10+ years" : w.experienceYears === 0 ? "0-1 years" : `${w.experienceYears} years`],
     ["Qualification", w.qualification], ["English level", w.englishLanguage],
     ["Preferred language", w.preferredLanguage], ["Can join", w.whenCanJoin],
     ["Preferred work area", w.workingLocation], ["Food preferences", w.vegNonVeg],
@@ -69,8 +70,9 @@ export async function generateWorkerResume(w: Worker, photo?: { data: Uint8Array
   if (w.experienceYears != null && experienceCategories.length) {
     section("Experience by type of help");
     const years = w.experienceYears >= 10 ? "10+ years" : w.experienceYears === 0 ? "0-1 years" : `${w.experienceYears} years`;
-    for (const category of experienceCategories) draw(`${LABELS[category] || category}: ${years}`);
-    draw("Experience overlaps across these services; it is not added to the total.", 9, muted);
+    const breakdown = parseExperience(w.experienceBreakdown);
+    for (const category of experienceCategories) draw(`${LABELS[category] || category}: ${breakdown[category] == null ? years : `${breakdown[category]} years`}`);
+    if (!Object.keys(breakdown).length) draw("Experience overlaps across these services; it is not added to the total.", 9, muted);
   }
   if (w.skill) { section("Skills"); draw(w.skill); }
   if (w.about) { section("About the worker"); draw(w.about); }

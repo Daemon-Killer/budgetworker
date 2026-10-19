@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { parseExperience, validExperience } from "../../shared/experience";
 import { PREFERRED_LANGUAGES, selectedLanguages } from "../../shared/languages";
 import {
   WORKER_CATEGORIES,
@@ -27,6 +28,7 @@ export const workerInput = z
     area: text,
     age: nullableNumber(18, 100, true).optional(),
     experienceYears: nullableNumber(0, 80, true).optional(),
+    experienceBreakdown: z.string().max(300).refine(validExperience, "Enter valid experience years for each service (total up to 80 years)").optional(),
     experienceCategories: z.string().max(100).refine((value) => {
       const categories = value.split(",").filter(Boolean);
       return categories.length <= 4 && new Set(categories).size === categories.length && categories.every((category) => ["HOUSEKEEPING", "ALLROUNDER", "BABYCARE", "JAPA"].includes(category));
@@ -68,6 +70,13 @@ export function validateWorker(body: unknown, partial = false) {
       status: 400,
     });
   const data = result.data;
+  if (data.experienceBreakdown && Object.keys(parseExperience(data.experienceBreakdown)).length) {
+    const breakdown = parseExperience(data.experienceBreakdown);
+    const selected = data.experienceCategories?.split(",").filter(Boolean);
+    if (selected && (selected.some((category) => breakdown[category] == null) || Object.keys(breakdown).some((category) => !selected.includes(category))))
+      throw Object.assign(new Error("Enter separate experience for every selected service"), { status: 400 });
+    data.experienceYears = Object.values(breakdown).reduce((sum, years) => sum + years, 0);
+  }
   if (
     "latitude" in data !== "longitude" in data ||
     (data.latitude == null) !== (data.longitude == null)

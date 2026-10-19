@@ -17,6 +17,7 @@ export const adminWorkerSelect = {
   salaryExpectation: true,
   experienceYears: true,
   experienceCategories: true,
+  experienceBreakdown: true,
   latitude: true,
   longitude: true,
   status: true,

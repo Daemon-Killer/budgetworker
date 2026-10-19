@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { CATEGORIES, LABELS } from "../../../shared/marketplace";
 import { PREFERRED_LANGUAGES, selectedLanguages } from "../../../shared/languages";
+import { parseExperience } from "../../../shared/experience";
 const adminCategories = CATEGORIES.filter((category) => category !== "CHEF");
 type Worker = {
   id: string;
@@ -37,6 +38,7 @@ const empty = {
   age: "",
   experienceYears: "",
   experienceCategories: "",
+  experienceBreakdown: "{}",
   skill: "",
   about: "",
   whenCanJoin: "",
@@ -482,17 +484,32 @@ export function AdminDirectory() {
                   <span aria-hidden="true" className="bw-help-chevron">⌄</span>
                 </summary>
                 <fieldset aria-label="Experience in">
-                  <legend>Apply total experience to these types of help</legend>
+                  <legend>Select the services the worker has experience in</legend>
                   {adminCategories.map((category) => {
                     const selected = draft.experienceCategories.split(",").filter(Boolean);
                     return <label key={category} className="bw-help-option">
-                      <input type="checkbox" checked={selected.includes(category)} onChange={(e) => setDraft({ ...draft, experienceCategories: (e.target.checked ? [...selected, category] : selected.filter((value) => value !== category)).join(",") })} />
+                      <input type="checkbox" checked={selected.includes(category)} onChange={(e) => {
+                        const breakdown = parseExperience(draft.experienceBreakdown);
+                        if (!e.target.checked) delete breakdown[category];
+                        setDraft({ ...draft, experienceCategories: (e.target.checked ? [...selected, category] : selected.filter((value) => value !== category)).join(","), experienceBreakdown: JSON.stringify(breakdown), ...(Object.keys(breakdown).length ? { experienceYears: String(Object.values(breakdown).reduce((sum, years) => sum + years, 0)) } : {}) });
+                      }} />
                       {LABELS[category]}
                     </label>;
                   })}
-                  <p className="bw-help-hint">Total experience applies to every selected category. These years overlap and are not added together.</p>
+                  <p className="bw-help-hint">Enter years separately below. Total experience is calculated from those years. Leave all blank to use the shared total.</p>
                 </fieldset>
               </details>
+              {draft.experienceCategories.split(",").filter(Boolean).map((category) => (
+                <label className="bw-field" key={category}>
+                  {LABELS[category]} experience (years)
+                  <input type="number" min={0} max={80} step={1} value={parseExperience(draft.experienceBreakdown)[category] ?? ""}
+                    onChange={(e) => {
+                      const breakdown = parseExperience(draft.experienceBreakdown);
+                      if (e.target.value === "") delete breakdown[category]; else breakdown[category] = Number(e.target.value);
+                      setDraft({ ...draft, experienceBreakdown: JSON.stringify(breakdown), ...(Object.keys(breakdown).length ? { experienceYears: String(Object.values(breakdown).reduce((sum, years) => sum + years, 0)) } : {}) });
+                    }} />
+                </label>
+              ))}
             </div>
             <label className="bw-field">
               Directory visibility

@@ -20,10 +20,10 @@ export const workerInput = z
       .string()
       .transform(normalizePhone)
       .refine(isValidPhone, "Valid phone required"),
-    category: z.enum(WORKER_CATEGORIES),
+    category: z.enum([...WORKER_CATEGORIES, "UNASSIGNED"]),
     additionalPhone: z.string().trim().refine((value) => !value || isValidPhone(normalizePhone(value)), "Valid additional phone required").transform((value) => value ? normalizePhone(value) : "").nullable().optional(),
     secondaryCategory: z.enum(["", ...WORKER_CATEGORIES]).nullable().optional(),
-    employmentType: z.enum(EMPLOYMENT_TYPES),
+    employmentType: z.enum([...EMPLOYMENT_TYPES, "UNASSIGNED"]),
     city: z.string().trim().min(2).max(100),
     area: text,
     age: nullableNumber(18, 100, true).optional(),
@@ -70,6 +70,8 @@ export function validateWorker(body: unknown, partial = false) {
       status: 400,
     });
   const data = result.data;
+  if (data.status === "AVAILABLE" && (data.category === "UNASSIGNED" || data.employmentType === "UNASSIGNED"))
+    throw Object.assign(new Error("Review the type of help and work arrangement before publishing"), { status: 400 });
   if (data.experienceBreakdown && Object.keys(parseExperience(data.experienceBreakdown)).length) {
     const breakdown = parseExperience(data.experienceBreakdown);
     const selected = data.experienceCategories?.split(",").filter(Boolean);

@@ -66,16 +66,21 @@ export function AdminDirectory() {
     [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
     [notice, setNotice] = useState(""),
+    [page, setPage] = useState(1),
+    [query, setQuery] = useState(""),
+    [search, setSearch] = useState(""),
+    [total, setTotal] = useState(0),
     [resumeDownload, setResumeDownload] = useState<string | null>(null),
     [places, setPlaces] = useState<
       { label: string; latitude: number; longitude: number }[]
     >([]);
   const load = useCallback(async () => {
-    const r = await fetch("/api/admin/workers");
+    const r = await fetch(`/api/admin/workers?page=${page}&q=${encodeURIComponent(search)}`);
     const d = await r.json();
     if (!r.ok) throw Error(d.error);
     setWorkers(d.workers);
-  }, []);
+    setTotal(d.total ?? d.workers.length);
+  }, [page, search]);
   useEffect(() => {
     void Promise.resolve()
       .then(load)
@@ -314,13 +319,13 @@ export function AdminDirectory() {
               Type of help (select up to 2)
               <details className="bw-help-dropdown">
                 <summary>
-                  <span>{[draft.category, draft.secondaryCategory].filter(Boolean).map((c) => LABELS[c]).join(", ")}</span>
+                  <span>{[draft.category, draft.secondaryCategory].filter(Boolean).map((c) => LABELS[c] || "Needs review").join(", ")}</span>
                   <span aria-hidden="true" className="bw-help-chevron">⌄</span>
                 </summary>
                 <fieldset aria-label="Type of help">
                   <legend>Select 1 or 2 types of help</legend>
                   {!(adminCategories as readonly string[]).includes(draft.category) && (
-                    <p>{LABELS[draft.category]} (no longer offered)</p>
+                    <p>{LABELS[draft.category] || "Needs review"}</p>
                   )}
                 {adminCategories.map((c) => (
                   <label key={c} className="bw-help-option">
@@ -351,6 +356,7 @@ export function AdminDirectory() {
                   setDraft({ ...draft, employmentType: e.target.value })
                 }
               >
+                {draft.employmentType === "UNASSIGNED" && <option value="UNASSIGNED">Needs review</option>}
                 {draft.employmentType === "FULL_TIME" && (
                   <option value="FULL_TIME" disabled>
                     Full time (no longer offered)
@@ -654,13 +660,22 @@ export function AdminDirectory() {
           </button>
         </form>
       )}
+      <form className="bw-actions" onSubmit={(e) => { e.preventDefault(); setPage(1); setSearch(query); }}>
+        <label className="bw-field">Find worker<input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Name, phone or city" /></label>
+        <button className="bw-button secondary" type="submit">Search workers</button>
+      </form>
+      <p>{total} worker profiles · Page {page} of {Math.max(1, Math.ceil(total / 100))}</p>
+      <div className="bw-actions">
+        <button className="bw-button secondary" disabled={page <= 1} onClick={() => setPage(page - 1)}>Previous page</button>
+        <button className="bw-button secondary" disabled={page * 100 >= total} onClick={() => setPage(page + 1)}>Next page</button>
+      </div>
       <div className="bw-directory-admin-list">
         {workers.map((w) => (
           <article key={w.id} className="bw-card">
             <div>
               <h3>{w.name}</h3>
               <p>
-                {LABELS[w.category]} ·{" "}
+                {LABELS[w.category] || "Type of help needs review"} ·{" "}
                 {[w.area, w.city].filter(Boolean).join(", ")} ·{" "}
                 {w.status.toLowerCase()}
               </p>

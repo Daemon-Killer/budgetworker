@@ -5,6 +5,8 @@ import {gunzipSync} from 'node:zlib';
 
 // Input is a locally prepared export, never a public asset or committed dataset.
 const file = process.argv[2];
+const category = process.argv.includes('--domestic-part-time') ? 'HOUSEKEEPING' : 'UNASSIGNED';
+const employmentType = process.argv.includes('--domestic-part-time') ? 'PART_TIME' : 'UNASSIGNED';
 if (!file) throw Error('Usage: node scripts/import-workers.mjs private-import.json [--apply]');
 const contents = fs.readFileSync(file, 'utf8');
 const input = JSON.parse(file.endsWith('.gz.b64') ? gunzipSync(Buffer.from(contents, 'base64')).toString('utf8') : contents);
@@ -32,10 +34,10 @@ try {
     candidates.push({id,name:r.name,phone,city:r.city,area:r.area,age:r.age,
       qualification:r.qualification,englishLanguage:r.englishLanguage,
       experienceYears:r.experienceLevel==='Fresher'?0:null,
-      category:'UNASSIGNED',employmentType:'UNASSIGNED',status:'INACTIVE',onboardingStatus:'PENDING',
-      internalNotes:JSON.stringify({source:'worker-spreadsheet-import',sourceHash:input.sourceHash,experienceLevel:r.experienceLevel,reviewRequired:['Type of help','Work arrangement','Experience years','Source details'],duplicateSourceRows:rows.length,sourceRows:rows.map(x=>({row:x.row,original:x.original}))})});
+      category,employmentType,status:'INACTIVE',onboardingStatus:'PENDING',
+      internalNotes:JSON.stringify({source:'worker-spreadsheet-import',sourceHash:input.sourceHash,experienceLevel:r.experienceLevel,reviewRequired:[...(category==='UNASSIGNED'?['Type of help','Work arrangement']:[]),'Experience years','Source details'],duplicateSourceRows:rows.length,sourceRows:rows.map(x=>({row:x.row,original:x.original}))})});
   }
-  const summary={sourceRows:input.records.length,uniquePhones:grouped.size,duplicateRows:input.records.length-grouped.size,existingPhones,underagePhones,candidates:candidates.length};
+  const summary={sourceRows:input.records.length,uniquePhones:grouped.size,duplicateRows:input.records.length-grouped.size,existingPhones,underagePhones,candidates:candidates.length,category,employmentType};
   console.log('Worker import review:',JSON.stringify(summary));
   if (process.argv.includes('--apply')) {
     let inserted=0;

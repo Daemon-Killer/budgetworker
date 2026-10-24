@@ -4,6 +4,7 @@ import { CATEGORIES, LABELS } from "../../../shared/marketplace";
 import { PREFERRED_LANGUAGES, selectedLanguages } from "../../../shared/languages";
 import { parseExperience } from "../../../shared/experience";
 const adminCategories = CATEGORIES.filter((category) => category !== "CHEF");
+const adminCities = ["Delhi", "New Delhi", "Gurgaon", "Noida", "Greater Noida", "Faridabad", "Ghaziabad", "Pune", "Mumbai", "Navi Mumbai", "Thane", "Hyderabad", "Bangalore"];
 type Worker = {
   id: string;
   name: string;
@@ -271,10 +272,10 @@ export function AdminDirectory() {
                     onChange={(e) => setDraft({ ...draft, city: e.target.value, latitude: "", longitude: "" })}
                   >
                     <option value="">Select city</option>
-                    {draft.city && !["Delhi", "New Delhi", "Gurgaon", "Noida", "Greater Noida", "Faridabad", "Ghaziabad", "Pune", "Mumbai", "Navi Mumbai", "Thane"].includes(draft.city) && (
+                    {draft.city && !adminCities.includes(draft.city) && (
                       <option value={draft.city}>{draft.city} (saved city)</option>
                     )}
-                    {["Delhi", "New Delhi", "Gurgaon", "Noida", "Greater Noida", "Faridabad", "Ghaziabad", "Pune", "Mumbai", "Navi Mumbai", "Thane"].map((city) => (
+                    {adminCities.map((city) => (
                       <option key={city} value={city}>{city}</option>
                     ))}
                   </select>

@@ -42,7 +42,9 @@ export async function searchWorkers(
         inputError("Invalid " + key);
       if (key === "category" && !(CATEGORIES as readonly string[]).includes(value))
         inputError("This service is no longer offered");
-      clauses.push(sql`${Prisma.raw('w."' + key + '"')}=${value}`);
+      clauses.push(key === "category"
+        ? sql`(w.category=${value} OR w."secondaryCategory"=${value})`
+        : sql`${Prisma.raw('w."' + key + '"')}=${value}`);
     }
   }
   const q = sp.get("q")?.trim();
@@ -111,6 +113,7 @@ export const publicWorkerSelect = {
   id: true,
   name: true,
   category: true,
+  secondaryCategory: true,
   employmentType: true,
   city: true,
   area: true,

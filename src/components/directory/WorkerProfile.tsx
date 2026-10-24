@@ -2,6 +2,7 @@
 
 import { useCallback, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { LABELS } from "../../../shared/marketplace";
 import { employmentLabel } from "@/lib/constants";
 import { periodLabels, type DirectoryWorker, type ResumePack } from "../../../shared/directory";
@@ -37,7 +38,7 @@ export function WorkerProfile({ initial, packs, loggedIn, balance }: {
   );
   const w = worker;
   const rows = [
-    ["Type of help", LABELS[w.category]],
+    ["Type of help", [w.category, w.secondaryCategory].filter(Boolean).map((category) => LABELS[category!]).join(", ")],
     [
       "Work arrangement",
       employmentLabel(w.employmentType),
@@ -77,6 +78,7 @@ export function WorkerProfile({ initial, packs, loggedIn, balance }: {
       <div className="bw-page-head">
         <div>
           <p className="bw-eyebrow">WORKER PROFILE · FREE TO BROWSE</p>
+          {w.photoUrl && <Image src={w.photoUrl} alt={`${w.name} profile photo`} width={120} height={120} unoptimized style={{ borderRadius: 12, objectFit: "cover" }} />}
           <h1>{w.name}</h1>
           <p>{w.skill}</p>
         </div>

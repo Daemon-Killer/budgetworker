@@ -2,6 +2,7 @@ export type DirectoryWorker = {
   id: string;
   name: string;
   category: string;
+  secondaryCategory?: string | null;
   employmentType: string;
   city: string;
   area: string | null;

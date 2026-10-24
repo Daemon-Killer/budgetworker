@@ -40,6 +40,7 @@ export function toPublicWorker(w: Pick<Worker, keyof Omit<DirectoryWorker,'hasRe
     id: w.id,
     name: w.name,
     category: w.category,
+    secondaryCategory: w.secondaryCategory,
     employmentType: w.employmentType,
     city: w.city,
     area: w.area,

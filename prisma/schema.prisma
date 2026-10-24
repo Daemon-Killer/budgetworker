@@ -117,8 +117,10 @@ model Worker {
   id     String @id @default(cuid())
   name   String
   phone  String
+  additionalPhone String?
   // COOK | HOUSEKEEPING | BABYCARE | JAPA | ELDERCARE | CHEF
   category String
+  secondaryCategory String?
   // PART_TIME | FULL_TIME
   employmentType String @default("FULL_TIME")
   city           String @default("Pune")
@@ -132,7 +134,12 @@ model Worker {
   hoursPerDay      Float?
   vegNonVeg         String?
   religion          String?
+  englishLanguage   String?
+  qualification     String?
+  preferredLanguage String?
   experienceYears   Int?
+  experienceCategories String @default("")
+  experienceBreakdown String @default("{}")
   livingLocation    String?
   workingLocation   String?
   whenCanJoin       String?

@@ -1,6 +1,7 @@
 import { requireAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { jsonError, jsonOk } from "@/lib/api";
+import { publicResumeFileName } from "@/lib/resume-file";
 
 const MAX_BYTES = 4 * 1024 * 1024; // 4MB (Vercel body limit friendly)
 const ALLOWED = new Set([
@@ -10,6 +11,21 @@ const ALLOWED = new Set([
   "image/jpeg",
   "image/png",
 ]);
+
+export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }) {
+  try {
+    await requireAdmin(req);
+    const { id } = await ctx.params;
+    const worker = await prisma.worker.findUnique({ where: { id }, select: { resumeData: true, resumeMimeType: true } });
+    if (!worker?.resumeData) return new Response("Resume not found", { status: 404 });
+    return new Response(new Uint8Array(worker.resumeData), { headers: {
+      "Content-Type": worker.resumeMimeType || "application/octet-stream",
+      "Content-Disposition": `attachment; filename="${publicResumeFileName(worker.resumeMimeType, null)}"`,
+      "Cache-Control": "private, no-store",
+      "X-Content-Type-Options": "nosniff",
+    } });
+  } catch (e) { return jsonError(e); }
+}
 
 /**
  * Internal: upload resume file for a worker (multipart form field "file").

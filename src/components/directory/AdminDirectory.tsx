@@ -1,10 +1,15 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
 import { CATEGORIES, LABELS } from "../../../shared/marketplace";
+import { PREFERRED_LANGUAGES, selectedLanguages } from "../../../shared/languages";
+import { parseExperience } from "../../../shared/experience";
+const adminCategories = CATEGORIES.filter((category) => category !== "CHEF");
+const adminCities = ["Delhi", "New Delhi", "Gurgaon", "Noida", "Greater Noida", "Faridabad", "Ghaziabad", "Pune", "Mumbai", "Navi Mumbai", "Thane", "Hyderabad", "Bangalore"];
 type Worker = {
   id: string;
   name: string;
   phone: string;
+  documents?: { kind: string; fileName: string }[];
   category: string;
   employmentType: string;
   city: string;
@@ -18,36 +23,32 @@ const fields = [
   ["phone", "Phone (private)"],
   ["city", "City"],
   ["area", "Area / neighbourhood"],
-  ["expectedPayInr", "Expected pay (₹)"],
-  ["hoursPerDay", "Hours per day"],
   ["age", "Age"],
-  ["experienceYears", "Years of experience"],
   ["skill", "Skills"],
-  ["whenCanJoin", "Can join from"],
-  ["livingLocation", "Lives in"],
   ["workingLocation", "Preferred work area"],
-  ["vegNonVeg", "Food preferences"],
-  ["religion", "Religion (optional)"],
 ] as const;
 const empty = {
   name: "",
   phone: "",
+  additionalPhone: "",
   category: "HOUSEKEEPING",
+  secondaryCategory: "",
   employmentType: "PART_TIME",
   city: "Pune",
   area: "",
-  expectedPayInr: "",
-  payPeriod: "MONTH",
-  hoursPerDay: "",
   age: "",
   experienceYears: "",
+  experienceCategories: "",
+  experienceBreakdown: "{}",
   skill: "",
   about: "",
   whenCanJoin: "",
-  livingLocation: "",
   workingLocation: "",
   vegNonVeg: "",
   religion: "",
+  englishLanguage: "",
+  qualification: "",
+  preferredLanguage: "",
   latitude: "",
   longitude: "",
   policeVerified: false,
@@ -60,19 +61,27 @@ export function AdminDirectory() {
     [draft, setDraft] = useState<Draft | null>(null),
     [id, setId] = useState<string | null>(null),
     [file, setFile] = useState<File | null>(null),
+    [photo, setPhoto] = useState<File | null>(null),
+    [aadhaar, setAadhaar] = useState<File | null>(null),
     [contactReviewed, setContactReviewed] = useState(false),
     [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
     [notice, setNotice] = useState(""),
+    [page, setPage] = useState(1),
+    [query, setQuery] = useState(""),
+    [search, setSearch] = useState(""),
+    [total, setTotal] = useState(0),
+    [resumeDownload, setResumeDownload] = useState<string | null>(null),
     [places, setPlaces] = useState<
       { label: string; latitude: number; longitude: number }[]
     >([]);
   const load = useCallback(async () => {
-    const r = await fetch("/api/admin/workers");
+    const r = await fetch(`/api/admin/workers?page=${page}&q=${encodeURIComponent(search)}`);
     const d = await r.json();
     if (!r.ok) throw Error(d.error);
     setWorkers(d.workers);
-  }, []);
+    setTotal(d.total ?? d.workers.length);
+  }, [page, search]);
   useEffect(() => {
     void Promise.resolve()
       .then(load)
@@ -91,7 +100,10 @@ export function AdminDirectory() {
   function edit(w?: Worker) {
     setError("");
     setNotice("");
+    setResumeDownload(null);
     setFile(null);
+    setPhoto(null);
+    setAadhaar(null);
     setContactReviewed(false);
     setPlaces([]);
     setId(w?.id ?? null);
@@ -143,6 +155,10 @@ export function AdminDirectory() {
     setError("");
     let saved = id;
     try {
+      for (const selected of [photo, aadhaar]) {
+        if (selected && selected.size > 2 * 1024 * 1024)
+          throw Error("Photo and Aadhaar files must each be 2 MB or smaller.");
+      }
       const body = { ...draft };
       if (!saved) {
         const d = await api("", "POST", { ...body, status: "INACTIVE" });
@@ -160,17 +176,32 @@ export function AdminDirectory() {
         const d = await r.json();
         if (!r.ok) throw Error(d.error);
       }
+      for (const [kind, selected] of [["PHOTO", photo], ["AADHAAR", aadhaar]] as const) {
+        if (!selected) continue;
+        const r = await fetch(`/api/admin/workers/${saved}/documents?kind=${kind}`, {
+          method: "PUT", body: selected,
+          headers: { "Content-Type": selected.type || "application/octet-stream" },
+        });
+        const d = await r.json();
+        if (!r.ok) throw Error(d.error);
+      }
+      if (!file) {
+        const r = await fetch(`/api/admin/workers/${saved}/resume/generate`, { method: "POST" });
+        const d = await r.json();
+        if (!r.ok) throw Error(d.error || "Unable to generate resume");
+      }
       await api("/" + saved, "PATCH", { status: draft.status });
       await load();
       setDraft(null);
+      setResumeDownload(`/api/admin/workers/${saved}/resume`);
       setNotice(
-        "Profile saved. Available profiles appear in the public directory.",
+        "Profile saved. Your resume is ready to download.",
       );
     } catch (e) {
       setError(
         (e instanceof Error ? e.message : "Unable to save") +
           (saved
-            ? " The profile is saved; you can retry the resume upload here."
+            ? " The profile is saved; you can retry any pending uploads here."
             : ""),
       );
     } finally {
@@ -184,8 +215,7 @@ export function AdminDirectory() {
           <p className="bw-eyebrow">DIRECTORY MANAGEMENT</p>
           <h2>Worker profiles & resumes</h2>
           <p>
-            Add the details families browse and upload the resume they can
-            unlock.
+            Add worker details and save to create a professional PDF resume.
           </p>
         </div>
         <button className="bw-button" onClick={() => edit()}>
@@ -202,6 +232,7 @@ export function AdminDirectory() {
           {notice}
         </p>
       )}
+      {resumeDownload && <a className="bw-button" href={resumeDownload}>Download resume</a>}
       {draft && (
         <form onSubmit={save} className="bw-card bw-form">
           <div className="bw-card-head">
@@ -216,65 +247,108 @@ export function AdminDirectory() {
           </div>
           <div className="bw-form-grid">
             {fields.map(([key, label]) => (
-              <label className="bw-field" key={key}>
+              <div className="bw-field" key={key}>
+              <label className="bw-field">
                 {label}
-                <input
-                  required={[
-                    "name",
-                    "phone",
-                    "city",
-                    "area",
-                    "expectedPayInr",
-                    "hoursPerDay",
-                  ].includes(key)}
+                {key === "skill" ? (
+                  <select
+                    aria-label="Skills"
+                    value={draft.skill}
+                    onChange={(e) => setDraft({ ...draft, skill: e.target.value })}
+                  >
+                    <option value="">Select skill</option>
+                    {draft.skill && !adminCategories.some((category) => LABELS[category] === draft.skill) && (
+                      <option value={draft.skill}>{draft.skill} (saved skill)</option>
+                    )}
+                    {adminCategories.map((category) => (
+                      <option key={category} value={LABELS[category]}>{LABELS[category]}</option>
+                    ))}
+                  </select>
+                ) : key === "city" ? (
+                  <select
+                    aria-label="City"
+                    required
+                    value={draft.city}
+                    onChange={(e) => setDraft({ ...draft, city: e.target.value, latitude: "", longitude: "" })}
+                  >
+                    <option value="">Select city</option>
+                    {draft.city && !adminCities.includes(draft.city) && (
+                      <option value={draft.city}>{draft.city} (saved city)</option>
+                    )}
+                    {adminCities.map((city) => (
+                      <option key={city} value={city}>{city}</option>
+                    ))}
+                  </select>
+                ) : <input
+                  required={["name", "phone", "city", "area"].includes(key)}
                   type={
                     [
-                      "expectedPayInr",
-                      "hoursPerDay",
                       "age",
                       "experienceYears",
                     ].includes(key)
                       ? "number"
                       : "text"
                   }
-                  min={key === "hoursPerDay" ? 0.5 : key === "age" ? 18 : 0}
-                  max={
-                    key === "hoursPerDay" ? 24 : key === "age" ? 100 : undefined
-                  }
-                  step={key === "hoursPerDay" ? 0.5 : 1}
+                  min={key === "age" ? 18 : 0}
+                  max={key === "age" ? 100 : undefined}
+                  step={1}
                   value={draft[key]}
                   onChange={(e) =>
                     setDraft({
                       ...draft,
                       [key]: e.target.value,
-                      ...(key === "city" || key === "area"
+                      ...(key === "area"
                         ? { latitude: "", longitude: "" }
                         : {}),
                     })
                   }
-                />
+                />}
               </label>
+              {key === "phone" && (
+                <label className="bw-field">
+                  Additional no (private)
+                  <input
+                    type="tel"
+                    value={draft.additionalPhone}
+                    onChange={(e) => setDraft({ ...draft, additionalPhone: e.target.value })}
+                  />
+                </label>
+              )}
+              </div>
             ))}
-            <label className="bw-field">
-              Type of help
-              <select aria-label="Type of help"
-                value={draft.category}
-                onChange={(e) =>
-                  setDraft({ ...draft, category: e.target.value })
-                }
-              >
-                {!(CATEGORIES as readonly string[]).includes(draft.category) && (
-                  <option value={draft.category} disabled>
-                    {LABELS[draft.category]} (no longer offered)
-                  </option>
-                )}
-                {CATEGORIES.map((c) => (
-                  <option key={c} value={c}>
+            <div className="bw-field">
+              Type of help (select up to 2)
+              <details className="bw-help-dropdown">
+                <summary>
+                  <span>{[draft.category, draft.secondaryCategory].filter(Boolean).map((c) => LABELS[c] || "Needs review").join(", ")}</span>
+                  <span aria-hidden="true" className="bw-help-chevron">⌄</span>
+                </summary>
+                <fieldset aria-label="Type of help">
+                  <legend>Select 1 or 2 types of help</legend>
+                  {!(adminCategories as readonly string[]).includes(draft.category) && (
+                    <p>{LABELS[draft.category] || "Needs review"}</p>
+                  )}
+                {adminCategories.map((c) => (
+                  <label key={c} className="bw-help-option">
+                    <input
+                      type="checkbox"
+                      checked={draft.category === c || draft.secondaryCategory === c}
+                      disabled={Boolean(draft.secondaryCategory) && draft.category !== c && draft.secondaryCategory !== c}
+                      onChange={(e) => {
+                        const selected = [draft.category, draft.secondaryCategory].filter(Boolean);
+                        const next = e.target.checked
+                          ? [...selected.filter((value) => (adminCategories as readonly string[]).includes(value)), c]
+                          : selected.filter((value) => value !== c);
+                        if (next.length) setDraft({ ...draft, category: next[0], secondaryCategory: next[1] || "" });
+                      }}
+                    />
                     {LABELS[c]}
-                  </option>
+                  </label>
                 ))}
-              </select>
-            </label>
+                  <p className="bw-help-hint">Choose up to 2. Uncheck a choice to select another.</p>
+                </fieldset>
+              </details>
+            </div>
             <label className="bw-field">
               Work arrangement
               <select aria-label="Work arrangement"
@@ -283,24 +357,167 @@ export function AdminDirectory() {
                   setDraft({ ...draft, employmentType: e.target.value })
                 }
               >
+                {draft.employmentType === "UNASSIGNED" && <option value="UNASSIGNED">Needs review</option>}
+                {draft.employmentType === "FULL_TIME" && (
+                  <option value="FULL_TIME" disabled>
+                    Full time (no longer offered)
+                  </option>
+                )}
                 <option value="PART_TIME">Part time</option>
-                <option value="FULL_TIME">Full time</option>
                 <option value="LIVE_IN">24 hours Live-in</option>
               </select>
             </label>
             <label className="bw-field">
-              Pay period
-              <select aria-label="Pay period"
-                value={draft.payPeriod}
-                onChange={(e) =>
-                  setDraft({ ...draft, payPeriod: e.target.value })
-                }
+              Food preferences
+              <select
+                aria-label="Food preferences"
+                value={draft.vegNonVeg}
+                onChange={(e) => setDraft({ ...draft, vegNonVeg: e.target.value })}
               >
-                <option value="MONTH">Per month</option>
-                <option value="DAY">Per day</option>
-                <option value="HOUR">Per hour</option>
+                <option value="">Select food preference</option>
+                {draft.vegNonVeg && !["Veg", "Veg + Non veg"].includes(draft.vegNonVeg) && (
+                  <option value={draft.vegNonVeg} disabled>{draft.vegNonVeg}</option>
+                )}
+                <option value="Veg">Veg</option>
+                <option value="Veg + Non veg">Veg + Non veg</option>
               </select>
             </label>
+            <label className="bw-field">
+              Religion (optional)
+              <select
+                aria-label="Religion (optional)"
+                value={draft.religion}
+                onChange={(e) => setDraft({ ...draft, religion: e.target.value })}
+              >
+                <option value="">Select religion</option>
+                {draft.religion && !["Hindu", "Muslim", "Other religion"].includes(draft.religion) && (
+                  <option value={draft.religion} disabled>{draft.religion}</option>
+                )}
+                <option value="Hindu">Hindu</option>
+                <option value="Muslim">Muslim</option>
+                <option value="Other religion">Other religion</option>
+              </select>
+            </label>
+            <label className="bw-field">
+              English language
+              <select
+                aria-label="English language"
+                value={draft.englishLanguage}
+                onChange={(e) => setDraft({ ...draft, englishLanguage: e.target.value })}
+              >
+                <option value="">Select English level</option>
+                <option value="No English">No English</option>
+                <option value="Thoda English">Thoda English</option>
+                <option value="Good English">Good English</option>
+                <option value="Fluent English">Fluent English</option>
+              </select>
+            </label>
+            <label className="bw-field">
+              Qualification
+              <select
+                aria-label="Qualification"
+                value={draft.qualification}
+                onChange={(e) => setDraft({ ...draft, qualification: e.target.value })}
+              >
+                <option value="">Select qualification</option>
+                <option value="Below 10th pass">Below 10th pass</option>
+                <option value="10th pass">10th pass</option>
+                <option value="12th pass">12th pass</option>
+                <option value="Graduation">Graduation</option>
+              </select>
+            </label>
+            <div className="bw-field">
+              Preferred language (select up to 4)
+              <details className="bw-help-dropdown">
+                <summary>
+                  <span>{draft.preferredLanguage || "Select preferred languages"}</span>
+                  <span aria-hidden="true" className="bw-help-chevron">⌄</span>
+                </summary>
+                <fieldset aria-label="Preferred language">
+                  <legend>Select up to 4 preferred languages</legend>
+                  {PREFERRED_LANGUAGES.map((language) => {
+                    const selected = selectedLanguages(draft.preferredLanguage);
+                    const checked = selected.includes(language);
+                    return <label key={language} className="bw-help-option">
+                      <input type="checkbox" checked={checked} disabled={!checked && selected.length >= 4}
+                        onChange={(e) => setDraft({ ...draft, preferredLanguage: (e.target.checked ? [...selected, language] : selected.filter((value) => value !== language)).join(", ") })} />
+                      {language}
+                    </label>;
+                  })}
+                  <p className="bw-help-hint">Choose up to 4. Uncheck a language to select another.</p>
+                </fieldset>
+              </details>
+            </div>
+            <label className="bw-field">
+              Can join from
+              <select
+                aria-label="Can join from"
+                value={draft.whenCanJoin}
+                onChange={(e) => setDraft({ ...draft, whenCanJoin: e.target.value })}
+              >
+                <option value="">Select joining availability</option>
+                {draft.whenCanJoin && !["Immediately", "Between 4-7 days", "After 7 days", "After 15 days"].includes(draft.whenCanJoin) && (
+                  <option value={draft.whenCanJoin} disabled>{draft.whenCanJoin}</option>
+                )}
+                <option value="Immediately">Immediately</option>
+                <option value="Between 4-7 days">Between 4-7 days</option>
+                <option value="After 7 days">After 7 days</option>
+                <option value="After 15 days">After 15 days</option>
+              </select>
+            </label>
+            <label className="bw-field">
+              Years of experience
+              <select
+                aria-label="Years of experience"
+                value={draft.experienceYears}
+                onChange={(e) => setDraft({ ...draft, experienceYears: e.target.value })}
+              >
+                <option value="">Select experience</option>
+                {draft.experienceYears && Number(draft.experienceYears) > 10 && (
+                  <option value={draft.experienceYears}>10+ years ({draft.experienceYears} years saved)</option>
+                )}
+                {Array.from({ length: 11 }, (_, years) => (
+                  <option key={years} value={String(years)}>
+                    {years === 10 ? "10+ years" : `${years}-${years + 1} years`}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <div className="bw-field">
+              Experience in (select all that apply)
+              <details className="bw-help-dropdown">
+                <summary>
+                  <span>{draft.experienceCategories ? draft.experienceCategories.split(",").map((category) => LABELS[category]).join(", ") : "Select experience categories"}</span>
+                  <span aria-hidden="true" className="bw-help-chevron">⌄</span>
+                </summary>
+                <fieldset aria-label="Experience in">
+                  <legend>Select the services the worker has experience in</legend>
+                  {adminCategories.map((category) => {
+                    const selected = draft.experienceCategories.split(",").filter(Boolean);
+                    return <label key={category} className="bw-help-option">
+                      <input type="checkbox" checked={selected.includes(category)} onChange={(e) => {
+                        const breakdown = parseExperience(draft.experienceBreakdown);
+                        if (!e.target.checked) delete breakdown[category];
+                        setDraft({ ...draft, experienceCategories: (e.target.checked ? [...selected, category] : selected.filter((value) => value !== category)).join(","), experienceBreakdown: JSON.stringify(breakdown), ...(Object.keys(breakdown).length ? { experienceYears: String(Object.values(breakdown).reduce((sum, years) => sum + years, 0)) } : {}) });
+                      }} />
+                      {LABELS[category]}
+                    </label>;
+                  })}
+                  <p className="bw-help-hint">Enter years separately below. Total experience is calculated from those years. Leave all blank to use the shared total.</p>
+                </fieldset>
+              </details>
+              {draft.experienceCategories.split(",").filter(Boolean).map((category) => (
+                <label className="bw-field" key={category}>
+                  {LABELS[category]} experience (years)
+                  <input type="number" min={0} max={80} step={1} value={parseExperience(draft.experienceBreakdown)[category] ?? ""}
+                    onChange={(e) => {
+                      const breakdown = parseExperience(draft.experienceBreakdown);
+                      if (e.target.value === "") delete breakdown[category]; else breakdown[category] = Number(e.target.value);
+                      setDraft({ ...draft, experienceBreakdown: JSON.stringify(breakdown), ...(Object.keys(breakdown).length ? { experienceYears: String(Object.values(breakdown).reduce((sum, years) => sum + years, 0)) } : {}) });
+                    }} />
+                </label>
+              ))}
+            </div>
             <label className="bw-field">
               Directory visibility
               <select aria-label="Directory visibility"
@@ -406,18 +623,33 @@ export function AdminDirectory() {
               Aadhaar verified
             </label>
           </div>
+          <div className="bw-form-grid">
+            <label className="bw-field">
+              Worker photo
+              <input aria-label="Worker photo" type="file" accept="image/jpeg,image/png" onChange={(e) => setPhoto(e.target.files?.[0] ?? null)} />
+              <small>JPG or PNG · up to 2 MB. Used as the profile photo.</small>
+            </label>
+            <label className="bw-field">
+              Aadhaar card (private)
+              <input aria-label="Aadhaar card (private)" type="file" accept="image/jpeg,image/png,application/pdf" onChange={(e) => setAadhaar(e.target.files?.[0] ?? null)} />
+              <small>JPG, PNG or PDF · up to 2 MB. Admin access only; uploading resets Aadhaar verification.</small>
+            </label>
+          </div>
+          {id && workers.find((w) => w.id === id)?.documents?.filter((d) => ["PHOTO", "AADHAAR"].includes(d.kind)).map((d) => (
+            <a key={d.kind} className="bw-text-button" href={`/api/admin/workers/${id}/documents?kind=${d.kind}`}>
+              Download saved {d.kind === "PHOTO" ? "worker photo" : "Aadhaar card"}
+            </a>
+          ))}
           <label className="bw-field">
-            Worker resume
+            Upload your own resume (optional)
             <input
               aria-label="Worker resume"
               type="file"
-              required={!id}
               accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
               onChange={(e) => { setFile(e.target.files?.[0] ?? null); setContactReviewed(false); }}
             />
             <small>
-              PDF, Word or image · up to 4 MB. Existing resume is kept unless
-              replaced.
+              Leave empty to generate a professional PDF from the profile. Or upload PDF, Word or image · up to 4 MB.
             </small>
           </label>
           {file && <label className="bw-check">
@@ -429,13 +661,22 @@ export function AdminDirectory() {
           </button>
         </form>
       )}
+      <form className="bw-actions" onSubmit={(e) => { e.preventDefault(); setPage(1); setSearch(query); }}>
+        <label className="bw-field">Find worker<input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Name, phone or city" /></label>
+        <button className="bw-button secondary" type="submit">Search workers</button>
+      </form>
+      <p>{total} worker profiles · Page {page} of {Math.max(1, Math.ceil(total / 100))}</p>
+      <div className="bw-actions">
+        <button className="bw-button secondary" disabled={page <= 1} onClick={() => setPage(page - 1)}>Previous page</button>
+        <button className="bw-button secondary" disabled={page * 100 >= total} onClick={() => setPage(page + 1)}>Next page</button>
+      </div>
       <div className="bw-directory-admin-list">
         {workers.map((w) => (
           <article key={w.id} className="bw-card">
             <div>
               <h3>{w.name}</h3>
               <p>
-                {LABELS[w.category]} ·{" "}
+                {LABELS[w.category] || "Type of help needs review"} ·{" "}
                 {[w.area, w.city].filter(Boolean).join(", ")} ·{" "}
                 {w.status.toLowerCase()}
               </p>
@@ -449,6 +690,7 @@ export function AdminDirectory() {
             <button className="bw-button secondary" onClick={() => edit(w)}>
               Edit profile / resume
             </button>
+            {w.resumeFileName && <a className="bw-text-button" href={`/api/admin/workers/${w.id}/resume`}>Download resume</a>}
           </article>
         ))}
       </div>

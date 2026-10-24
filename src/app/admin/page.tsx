@@ -11,6 +11,7 @@ export default async function AdminDashboardPage() {
     workersAvailable,
     workersPlaced,
     workersTotal,
+    workersInactive,
     clients,
     unlocks,
     paidOrders,
@@ -21,6 +22,7 @@ export default async function AdminDashboardPage() {
     prisma.worker.count({ where: { status: "AVAILABLE" } }),
     prisma.worker.count({ where: { status: "PLACED" } }),
     prisma.worker.count(),
+    prisma.worker.count({ where: { status: "INACTIVE" } }),
     prisma.user.count({ where: { role: "CLIENT" } }),
     prisma.unlock.count(),
     prisma.order.count({ where: { status: "PAID" } }),
@@ -49,6 +51,12 @@ export default async function AdminDashboardPage() {
 
   const stats = [
     {
+      label: "All workers",
+      value: workersTotal,
+      href: "/admin/workers",
+      tone: "blue",
+    },
+    {
       label: "Workers available",
       value: workersAvailable,
       href: "/admin/workers",
@@ -57,6 +65,12 @@ export default async function AdminDashboardPage() {
     {
       label: "Workers placed",
       value: workersPlaced,
+      href: "/admin/workers",
+      tone: "pink",
+    },
+    {
+      label: "Inactive / review drafts",
+      value: workersInactive,
       href: "/admin/workers",
       tone: "pink",
     },

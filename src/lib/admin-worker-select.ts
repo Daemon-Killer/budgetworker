@@ -33,6 +33,7 @@ export const adminWorkerSelect = {
   livingLocation: true,
   vegNonVeg: true,
   religion: true,
+  maritalStatus: true,
   englishLanguage: true,
   qualification: true,
   preferredLanguage: true,

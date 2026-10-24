@@ -43,6 +43,7 @@ export const workerInput = z
     salaryExpectation: text,
     vegNonVeg: text,
     religion: text,
+    maritalStatus: z.enum(["", "Single", "Married", "Divorced", "Widowed", "Separated"]).nullable().optional(),
     preferredLanguage: z.string().max(150).refine((value) => {
       const languages = selectedLanguages(value);
       return languages.length <= 4 && new Set(languages).size === languages.length && languages.every((language) => (PREFERRED_LANGUAGES as readonly string[]).includes(language));

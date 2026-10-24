@@ -46,6 +46,7 @@ const empty = {
   workingLocation: "",
   vegNonVeg: "",
   religion: "",
+  maritalStatus: "",
   englishLanguage: "",
   qualification: "",
   preferredLanguage: "",
@@ -518,6 +519,19 @@ export function AdminDirectory() {
                 </label>
               ))}
             </div>
+            <label className="bw-field">
+              Marital status
+              <select
+                aria-label="Marital status"
+                value={draft.maritalStatus}
+                onChange={(e) => setDraft({ ...draft, maritalStatus: e.target.value })}
+              >
+                <option value="">Select marital status</option>
+                {["Single", "Married", "Divorced", "Widowed", "Separated"].map((status) => (
+                  <option key={status} value={status}>{status}</option>
+                ))}
+              </select>
+            </label>
             <label className="bw-field">
               Directory visibility
               <select aria-label="Directory visibility"

@@ -1,0 +1,12 @@
+// Local Windows build only: shorten CMake output paths for native dependencies.
+def staging = System.getenv('BUDGETWORKER_CMAKE_STAGING_DIR')
+if (!staging || !(staging ==~ /[A-Za-z]:\/[A-Za-z0-9\/_.-]+/)) {
+    throw new GradleException('Set BUDGETWORKER_CMAKE_STAGING_DIR to a short absolute Windows path')
+}
+gradle.beforeProject { project ->
+    project.pluginManager.withPlugin('com.android.library') {
+        def android = project.extensions.findByName('android')
+        android.externalNativeBuild.cmake.buildStagingDirectory = project.file(staging + '/' + project.name)
+        android.defaultConfig.externalNativeBuild.cmake.arguments('-DCMAKE_OBJECT_PATH_MAX=250')
+    }
+}

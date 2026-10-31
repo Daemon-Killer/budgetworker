@@ -24,7 +24,11 @@ concurrency:
 
 jobs:
   build:
-    name: Build installable ARM64 APK
+    name: Build ${{ matrix.variant }} ARM64 APK
+    strategy:
+      fail-fast: false
+      matrix:
+        variant: [combined, customer]
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     defaults:
@@ -36,6 +40,7 @@ jobs:
       EXPO_NO_TELEMETRY: '1'
       EXPO_NO_DOTENV: '1'
       EXPO_PUBLIC_API_URL: https://budgetworker.in
+      EXPO_PUBLIC_APP_VARIANT: ${{ matrix.variant }}
       NODE_OPTIONS: --max-old-space-size=3072
 
     steps:
@@ -85,6 +90,8 @@ jobs:
           NODE
 
       - name: Generate native Android project
+        env:
+          BUDGETWORKER_ANDROID_VERSION_CODE: ${{ steps.version.outputs.code }}
         run: npx --no-install expo prebuild --platform android --no-install
 
       - name: Install Android SDK packages
@@ -104,11 +111,13 @@ jobs:
           BUILD_CODE: ${{ steps.version.outputs.code }}
         run: |
           mkdir -p ../artifacts
-          apk="../artifacts/budgetworker-saathi-build-${BUILD_CODE}-arm64.apk"
+          apk="../artifacts/budgetworker-${EXPO_PUBLIC_APP_VARIANT}-build-${BUILD_CODE}-arm64.apk"
           cp android/app/build/outputs/apk/release/app-release.apk "$apk"
           "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose --print-certs "$apk" > ../artifacts/signature.txt
           "$ANDROID_HOME/build-tools/36.0.0/aapt" dump badging "$apk" > ../artifacts/apk-info.txt
-          grep -F "name='in.budgetworker.app'" ../artifacts/apk-info.txt
+          package='in.budgetworker.app'
+          if [ "$EXPO_PUBLIC_APP_VARIANT" = customer ]; then package='in.budgetworker.customer'; fi
+          grep -F "name='${package}'" ../artifacts/apk-info.txt
           grep -F "versionCode='${BUILD_CODE}'" ../artifacts/apk-info.txt
           grep -F "native-code: 'arm64-v8a'" ../artifacts/apk-info.txt
           (cd ../artifacts && sha256sum *.apk > SHA256SUMS.txt)
@@ -119,7 +128,7 @@ jobs:
         id: upload
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
-          name: budgetworker-saathi-apk-${{ steps.version.outputs.code }}
+          name: budgetworker-${{ matrix.variant }}-apk-${{ steps.version.outputs.code }}
           path: artifacts/
           if-no-files-found: error
           retention-days: 14
@@ -130,5 +139,5 @@ jobs:
           ARTIFACT_URL: ${{ steps.upload.outputs.artifact-url }}
           BUILD_CODE: ${{ steps.version.outputs.code }}
         run: |
-          printf '## Android APK ready\n\n[Download APK bundle](%s)\n\nExtract the ZIP and install the APK on an ARM64 Android phone.\n\nBuild: **%s** · Backend: **%s**\n\nThis standalone APK includes the customer app and Saathi worker mode. It uses test signing for sideload testing. No Metro server or Expo account is required.\n\nDownloads are retained for 14 days. Use **Run workflow** to create a fresh build.\n' \
-            "$ARTIFACT_URL" "$BUILD_CODE" "$EXPO_PUBLIC_API_URL" >> "$GITHUB_STEP_SUMMARY"
+          printf '## Android APK ready\n\n[Download APK bundle](%s)\n\nExtract the ZIP and install the APK on an ARM64 Android phone.\n\nBuild: **%s** · Backend: **%s** · Variant: **%s**\n\nCustomer is the separate customer website app. Combined includes the original customer directory and Saathi worker mode. Both use test signing for sideload testing. No Metro server or Expo account is required.\n\nDownloads are retained for 14 days. Use **Run workflow** to create a fresh build.\n' \
+            "$ARTIFACT_URL" "$BUILD_CODE" "$EXPO_PUBLIC_API_URL" "$EXPO_PUBLIC_APP_VARIANT" >> "$GITHUB_STEP_SUMMARY"

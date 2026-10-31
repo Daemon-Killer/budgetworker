@@ -1,8 +1,9 @@
-import { router } from "expo-router";
+import { Redirect, router } from "expo-router";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function Index() {
+  if (process.env.EXPO_PUBLIC_APP_VARIANT === "customer") return <Redirect href="/consumer" />;
   return <SafeAreaView style={styles.safe}><View style={styles.content}>
     <Text style={styles.brand}>BudgetWorker</Text>
     <Text style={styles.tagline}>Trusted help. Better homes.</Text>

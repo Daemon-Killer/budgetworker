@@ -1,9 +1,21 @@
 import assert from 'node:assert/strict';
 import { chromium } from 'playwright';
+import { createHmac } from 'node:crypto';
+import { CUSTOMER_BRIDGE } from '../mobile/src/lib/customer-bridge.ts';
 const base = process.env.TEST_BASE_URL;
 if (!base?.startsWith('http://127.0.0.1:')) throw Error('Browser fixtures require the isolated local server');
-const browser = await chromium.launch({ executablePath: '/usr/bin/chromium', headless: true });
+const browser = await chromium.launch({ ...(process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE } : process.platform === 'linux' ? { executablePath: '/usr/bin/chromium' } : {}), headless: true });
 const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
+await context.addInitScript({ content: `
+  window.ReactNativeWebView = {postMessage(value) {
+    const message = JSON.parse(value);
+    if (message.type === 'payment') {
+      window.__customerPayment = message;
+      if (window.__cancelPayment) queueMicrotask(() => window.__bwPaymentResult(message.id, {success:false, cancelled:true}));
+    }
+  }};
+  document.addEventListener('DOMContentLoaded', () => { ${CUSTOMER_BRIDGE.replaceAll(JSON.stringify('https://budgetworker.in'), JSON.stringify(base))} });
+` });
 const page = await context.newPage();
 page.setDefaultTimeout(60000);
 const errors = []; page.on('pageerror', error => errors.push(error.message));
@@ -11,6 +23,10 @@ const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).for
 async function continueStep() { await page.getByRole('button', { name: 'Continue', exact: true }).click(); }
 async function questions(slug, twins = false) {
   await page.goto(base + '/services/' + slug + '/book');
+  await page.waitForFunction(() => {
+    const form = document.querySelector('form');
+    return form && Object.keys(form).some(key => key.startsWith('__reactProps$') && typeof form[key]?.onSubmit === 'function');
+  });
   await page.locator('#city').fill('Pune'); await page.locator('#area').fill('Baner'); await page.locator('#address').fill('Flat 201, Test Apartments'); await page.locator('#pincode').fill('411045'); await continueStep();
   // Empty responsibilities must keep the user on step 2.
   await continueStep(); await page.locator('form').getByRole('alert').waitFor(); assert((await page.locator('form').getByRole('alert').innerText()).includes('at least one duty'));
@@ -39,8 +55,8 @@ try {
   await page.getByRole('heading', { name: 'Review your booking' }).waitFor();
   const pendingId = new URL(page.url()).searchParams.get('booking');
   assert(pendingId);
-  // A local checkout stub cancels the already-created provider order; it never contacts Razorpay.
-  await page.evaluate(() => { window.Razorpay = class { constructor(options) { this.options = options; } on() {} open() { this.options.modal.ondismiss(); } }; });
+  // Exercise the real app bridge, with an isolated native result. Never contact Razorpay.
+  await page.evaluate(() => { window.__cancelPayment = true; });
   await page.locator('form input[type=checkbox]').check();
   const responsePromise = page.waitForResponse(response => response.url().endsWith('/api/service-bookings') && response.request().method() === 'POST');
   await page.getByRole('button', { name: 'Pay ₹1,999', exact: true }).click();
@@ -48,6 +64,20 @@ try {
   await page.locator('form').getByRole('alert').waitFor();
   assert((await page.locator('form').getByRole('alert').innerText()).includes('Payment cancelled'));
   console.log('Verified pending payment resumes the same booking');
+  await page.evaluate(() => { window.__cancelPayment = false; window.__customerPayment = null; });
+  await page.getByRole('button', { name: 'Pay ₹1,999', exact: true }).click();
+  await page.waitForFunction(() => window.__customerPayment);
+  const nativeRequest = await page.evaluate(() => window.__customerPayment);
+  assert.equal(nativeRequest.options.amount, 199900);
+  const paymentId = 'pay_isolated_native_bridge';
+  const signature = createHmac('sha256', 'isolated-test-secret').update(nativeRequest.options.order_id + '|' + paymentId).digest('hex');
+  await page.evaluate(({id, data}) => window.__bwPaymentResult(id, {success: true, data}), {id: nativeRequest.id, data: {
+    razorpay_order_id: nativeRequest.options.order_id, razorpay_payment_id: paymentId, razorpay_signature: signature,
+  }});
+  await page.getByRole('heading', { name: 'Test booking saved' }).waitFor();
+  await page.goto(base + '/bookings');
+  assert(!(await page.locator('main').innerText()).includes('Resume payment →'));
+  console.log('Verified website → native checkout bridge → server signature verification → paid booking');
   for (const [slug, expected] of [
     ['all-round-home-help', [2499,3999,6999]], ['babycare',[2499,3999,6999]], ['japa-care',[2999,4999]],
     ['24-hours-live-in-domestic-help',[4999,7999]], ['24-hours-live-in-all-round-home-help',[7999,11999]], ['24-hours-live-in-babycare',[7999,11999]], ['24-hours-live-in-japa-care',[3999,6999]],
@@ -72,4 +102,8 @@ try {
   await admin.close();
   assert.deepEqual(errors, []);
   console.log('PASS: all 8 service questionnaires + Japa twins; draft survives OTP login; actual mock checkout; customer record; admin authorization and saved requirements');
+} catch (error) {
+  console.error('Browser errors:', errors);
+  console.error('Current form:', await page.locator('form').innerText().catch(() => 'No form'));
+  throw error;
 } finally { await context.close(); await browser.close(); }

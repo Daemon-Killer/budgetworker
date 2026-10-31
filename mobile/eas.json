@@ -3,6 +3,14 @@
     "version": ">=16.0.0"
   },
   "build": {
+    "customer": {
+      "distribution": "internal",
+      "android": { "buildType": "apk" },
+      "env": {
+        "EXPO_PUBLIC_APP_VARIANT": "customer",
+        "EXPO_PUBLIC_API_URL": "https://budgetworker.in"
+      }
+    },
     "development": {
       "developmentClient": true,
       "distribution": "internal"
